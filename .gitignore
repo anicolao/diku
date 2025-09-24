@@ -16,6 +16,10 @@ data/
 config.json
 .env
 
+# Character data (user-specific)
+characters.json
+characters.json.backup.*
+
 # Test coverage
 coverage/
 
