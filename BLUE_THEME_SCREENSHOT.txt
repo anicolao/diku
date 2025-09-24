@@ -1,0 +1,38 @@
+TUI Layout with Uniform Blue Background Theme
+===========================================
+
+┌─ MUD Interaction (Blue Mode) ─────────────────────────────────┐┌─ LLM Status & Plans ──┐
+│ BLUE BACKGROUND                                               ││ BLUE BACKGROUND        │
+│ === MUD OUTPUT ===                                            ││ 💭 5 messages in       │
+│ Welcome to Arctic MUD!                                        ││    conversation        │
+│                                                               ││ 📋 Plan: Create char   │
+│ You are standing in a dimly lit chamber.                     ││ ➡️  Next: Look around   │
+│ A small door leads north.                                     ││ 🎮 Command: look        │
+│ There is a rusty key here.                                   ││                        │
+│                                                               ││                        │
+│ [18:30:15] You pick up the rusty key.                       │├─ Debug Messages ───────┤
+│                                                               ││ BLUE BACKGROUND        │
+│ Inventory: rusty key                                          ││                        │
+│                                                               ││ [18:30:15] Connected   │
+│ BRIGHT WHITE TEXT ON BLUE BACKGROUND                         ││ [18:30:16] LLM ready   │
+│ CYAN BORDERS                                                  ││ [18:30:17] Waiting...  │
+└───────────────────────────────────────────────────────────────┘│ BRIGHT YELLOW ON BLUE  │
+┌─ User Input / Approval ────────────────────────────────────────┤ CYAN BORDERS           │
+│ BLUE BACKGROUND                                               │└────────────────────────┘
+│ ✅ Ready to send command to MUD: get key                      │
+│                                                               │
+│ Press ENTER to approve, or Ctrl+C to quit                    │
+│ BRIGHT WHITE TEXT ON BLUE BACKGROUND                         │
+│ CYAN BORDERS                                                  │
+└───────────────────────────────────────────────────────────────┘
+
+All Panels Now Have:
+- Blue background (same as the original status panel)
+- Cyan borders (consistent across all panels)
+- Appropriate text colors for good contrast:
+  * MUD panel: Bright white text
+  * Status panel: White text
+  * Debug panel: Bright yellow text
+  * Input panel: Bright white text
+
+This ensures consistent appearance and better compatibility across different terminal environments.
