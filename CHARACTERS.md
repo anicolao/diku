@@ -30,6 +30,7 @@ The Diku MUD AI Player currently operates as a stateless LLM-driven client that 
 {
   "characterId": "unique-uuid-v4",
   "name": "CharacterName",
+  "password": "character_password",
   "createdAt": "2024-01-15T10:30:00.000Z",
   "lastPlayedAt": "2024-01-15T12:45:00.000Z",
   "totalPlaytime": 5400000,
@@ -62,7 +63,7 @@ The Diku MUD AI Player currently operates as a stateless LLM-driven client that 
 
 ## Character Selection Workflow
 
-### 1. Startup Character Discovery
+### 1. User-Controlled Startup Flow
 
 ```
 Application Startup
@@ -71,112 +72,166 @@ Load characters.json
        ↓
 Available characters? 
        ↓
-   Yes → Present to LLM    No → Create new character flow
-       ↓                         ↓
-LLM selects character          LLM creates character
-       ↓                         ↓
-Load character context     Save new character to file
-       ↓                         ↓
-   Start session with selected character
+   Yes → Present list to USER    No → Start new character flow
+       ↓                              ↓
+USER selects character             USER chooses new character
+       ↓                              ↓
+Load character context         LLM receives "start" command
+       ↓                              ↓
+   Start session with selected character context
 ```
 
-### 2. LLM Character Selection Process
+### 2. User Character Selection Interface
 
-Enhanced system prompt will include:
+The application presents available characters to the user for selection:
 
 ```
-**Character Selection**
-Available characters for this session:
+=== Diku MUD AI Player ===
+Available characters:
 
 1. Thorin (Level 3 Warrior) - Last played 2 hours ago
    Location: Temple of Midgaard
-   Key memories: Reached level 3, met helpful player Gandalf
-
+   
 2. Elara (Level 1 Mage) - Last played yesterday  
    Location: Midgaard Square
-   Key memories: Just created, completed character setup
 
-Select a character by responding with:
-```character
-CharacterName
+3. Create new character
+
+Choose option (1-3): _
 ```
 
-Or create a new character by responding with:
-```newcharacter
+### 3. LLM Prompting Based on User Choice
+
+**For New Character Creation:**
+The LLM receives a system prompt directing it to start character creation:
+
+```
+You are an expert Diku MUD player about to create a new character on arctic diku by telnet.
+Your goal is to create a character and advance to level 10 as efficiently as possible, 
+while making friends within the Diku environment.
+
+**First Command**: Send ```telnet
+start
+```
+
+After creating your character, record it using:
+```record-character
+{
+  "name": "CharacterName",
+  "class": "warrior", 
+  "race": "human",
+  "basicInfo": {
+    "level": 1,
+    "location": "Starting location"
+  }
+}
 ```
 ```
 
-### 3. Character Context Loading
-
-When a character is selected, the LLM receives additional context:
+**For Existing Character Login:**
+The LLM receives character context and login credentials:
 
 ```
-**Character Context Loaded**
-Playing as: Thorin (Level 3 Warrior, Human)
+You are continuing as an existing character: Thorin (Level 3 Warrior, Human)
+
+**Character Context**
 Last location: Temple of Midgaard
 Recent memories:
-- Reached level 3 by killing rabbits in the park  
-- Met helpful player 'Gandalf' who gave directions
+- Reached level 3 by killing rabbits in the park
+- Met helpful player 'Gandalf' who gave directions  
 - Currently exploring Temple area for advancement opportunities
 
-Continue your session with this character's goals and relationships in mind.
+**Login Instructions**: Send ```telnet
+Thorin
+password123
+```
+
+Continue your session with this character's established goals and relationships.
 ```
 
 ## Memory Management System
 
-### 1. Memory Collection During Play
+### 1. LLM-Controlled Memory Recording
 
-The client will monitor MUD output for key events and store memories:
+**Memory recording is entirely under LLM control**. The LLM decides when to record memories and what information is significant. No automatic triggers or parsing by the client.
 
-**Automatic Memory Triggers:**
-- Level advancement messages
-- New location discoveries  
-- NPC interactions with dialogue
-- Player social interactions
-- Combat achievements
-- Quest completions
-- Death/resurrection events
+**Character Creation Recording:**
+When the LLM creates a new character, it records the character using:
 
-**Memory Storage Format:**
-```json
+```
+```record-character
 {
-  "timestamp": "2024-01-15T11:30:00.000Z",
-  "type": "level_up|location|npc_interaction|player_interaction|combat|quest|death",
-  "summary": "Reached level 4 after defeating the goblin chief",
+  "name": "Thorin",
+  "class": "warrior", 
+  "race": "human",
+  "basicInfo": {
+    "level": 1,
+    "location": "Temple of Midgaard"
+  },
+  "password": "chosen_password"
+}
+```
+```
+
+**Memory Recording:**
+When the LLM experiences something significant, it records memories using:
+
+```
+```record-memory
+{
+  "summary": "Reached level 3 after defeating rabbits in the park",
+  "type": "level_up",
   "details": {
-    "location": "Dark Forest",
-    "experience": 1200,
-    "newLevel": 4
+    "newLevel": 3,
+    "location": "Midgaard Park",
+    "experience": "Efficient grinding session"
   }
 }
 ```
+```
 
-### 2. Memory Pruning Strategy
+**Character Update:**
+The LLM can update character information (location, level, etc.) using:
 
-To prevent memory bloat while preserving important context:
+```
+```update-character
+{
+  "level": 4,
+  "location": "Dark Forest",
+  "lastActivity": "Exploring new hunting grounds"
+}
+```
+```
 
-- **Keep Recent**: All memories from last 7 days
-- **Keep Important**: Level ups, major achievements, significant social interactions  
-- **Summarize Old**: Compress memories older than 7 days into summary entries
-- **Limit Size**: Maximum 50 detailed memories + 10 summary entries per character
+### 2. Memory Types Under LLM Control
+
+The LLM determines what constitutes significant memories:
+
+- **Progress Memories**: Level ups, skill improvements, achievements
+- **Social Memories**: Important player interactions, friendships, conflicts
+- **World Memories**: New location discoveries, quest information
+- **Combat Memories**: Significant battles, deaths, resurrections
+- **Strategic Memories**: Effective hunting spots, useful NPCs, gameplay insights
 
 ### 3. Memory Context in System Prompt
 
+Character memories are loaded into the LLM's context as natural language:
+
 ```
-**Character Memories**
-Recent experiences (last session):
-- Killed 5 goblins in Dark Forest (30 minutes ago)
-- Reached level 4 (25 minutes ago)  
-- Talked to Guard about northern routes (1 hour ago)
+**Character Background & Memories**
+Recent experiences:
+- "Reached level 3 after defeating rabbits in the park"
+- "Met helpful player 'Gandalf' who gave directions to Dark Forest"
+- "Discovered Temple Healer provides affordable healing"
 
 Important relationships:
-- Gandalf: Helpful high-level player, gave directions
-- Temple Healer: Provides healing services
+- Gandalf: High-level player, helpful with directions
+- Temple Healer: Reliable NPC for healing services
 
 Current objectives:
-- Continue leveling toward level 10
-- Explore new areas for better experience
-- Maintain friendly relationships with other players
+- Continue efficient leveling toward level 10
+- Explore Dark Forest for better experience opportunities
+- Maintain positive relationships with helpful players
 ```
 
 ## Implementation Architecture
@@ -192,21 +247,31 @@ class CharacterManager {
   async updateCharacter(characterId, updates) { /* ... */ }
   async recordMemory(characterId, memory) { /* ... */ }
   generateContextPrompt(character) { /* ... */ }
+  parseLLMCommand(response) { /* Parse record-character/record-memory/update-character */ }
+}
+```
+
+**UserInterface class** (`src/user-interface.js`):
+```javascript
+class UserInterface {
+  presentCharacterSelection(characters) { /* Show character menu to user */ }
+  getUserChoice() { /* Get user's character selection */ }
+  confirmCharacterChoice(character) { /* Confirm selected character */ }
 }
 ```
 
 ### 2. Integration Points
 
 **Modified MudClient** (`src/client.js`):
-- Add character selection at startup
-- Include character context in system prompt
-- Record memories during gameplay
-- Update character data on session end
+- Present user with character selection interface at startup
+- Parse LLM record-character/record-memory/update-character commands
+- Include character context in system prompt for existing characters
+- Handle both "start" and login command scenarios
 
 **Enhanced System Prompt**:
-- Character selection logic
-- Character context loading
-- Memory-aware planning and decision making
+- User-controlled character selection
+- Context loading for existing characters
+- LLM-controlled memory and character recording
 
 ### 3. Configuration Changes
 
@@ -215,9 +280,6 @@ class CharacterManager {
 {
   "characters": {
     "dataFile": "characters.json",
-    "maxMemories": 50,
-    "memoryRetentionDays": 7,
-    "autoSave": true,
     "backupOnSave": true
   }
 }
@@ -227,23 +289,25 @@ class CharacterManager {
 
 ### First Time Usage
 1. Application starts with no characters.json
-2. LLM receives prompt to create new character
-3. Character creation proceeds as normal
-4. New character saved automatically to characters.json
-5. Session begins with fresh character
+2. User sees "Create new character" as only option
+3. User selects new character creation
+4. LLM receives prompt to send "start" command for character creation
+5. LLM creates character and records it using ```record-character command
+6. Session begins with fresh character
 
 ### Returning User
 1. Application loads existing characters from characters.json
-2. LLM receives character selection prompt with available options
-3. User approves LLM's character choice
-4. Character context loaded into system prompt
-5. Session begins with character memories and context
+2. User presented with character selection interface
+3. User chooses existing character or creates new character
+4. For existing character: LLM receives login credentials and character context
+5. For new character: LLM receives "start" command prompt
+6. Session begins with appropriate character context
 
 ### Long-term Usage
-1. Multiple characters accumulate over time
-2. Each character maintains independent memory and progression
-3. LLM can switch between different character archetypes/playstyles
-4. Memory system automatically prunes old data while preserving important events
+1. Multiple characters accumulate over time through user choices
+2. Each character maintains independent memory through LLM recording
+3. User can switch between different character archetypes/playstyles
+4. LLM decides what memories to preserve for each character
 
 ## Error Handling
 
@@ -255,7 +319,7 @@ class CharacterManager {
 ### Data Validation
 - **Invalid character data**: Skip corrupted entries, load valid characters
 - **Missing required fields**: Fill with defaults, flag for user attention
-- **Memory overflow**: Automatically prune oldest non-critical memories
+- **LLM command parsing**: Validate record-character/record-memory/update-character commands
 
 ### Recovery Scenarios
 - **Backup restoration**: Automatic fallback to .backup file if main file corrupted

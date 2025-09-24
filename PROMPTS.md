@@ -26,6 +26,24 @@ Each entry follows this format:
 
 ## Development History
 
+### Commit: [PENDING] - Revise character memory design to be user-controlled with LLM-driven storage
+**Issue**: #9 (comment feedback)
+**Date**: 2024-09-24T12:30:00Z
+**Prompt**:
+```
+@copilot make the startup flow user controlled rather than LLM controlled—i.e. the user gets to choose if the LLM resumes playing a character or logs in as an existing character. Prompt the LLM appropriately according to whether it should send `start` to start a new character or use the login info to log in as an existing character; give it the context as shown in the current design if it is continuing. Make all storage of information in the state be under the LLM's control, not the code's control; the LLM should record a created character after making it and should record memories if it thinks they are significant. Again, make only changes to the CHARACTERS.md deisgn document for now, *don't implement* anything yet.
+
+Key changes made to CHARACTERS.md:
+1. Changed startup flow from LLM-controlled character selection to user-controlled selection
+2. Added user interface for character selection with menu presentation
+3. Modified LLM prompting to send "start" for new characters vs login credentials for existing
+4. Made memory recording entirely LLM-controlled using record-memory/record-character/update-character commands
+5. Removed automatic memory triggers and parsing - LLM decides what's significant
+6. Added password storage to character data model for login functionality
+7. Updated user experience flows to reflect user choice at startup
+8. Simplified configuration and error handling for LLM-controlled approach
+```
+
 ### Commit: [PENDING] - Create character memory system design document
 **Issue**: #[NEW] 
 **Date**: 2024-09-24T11:55:00Z
