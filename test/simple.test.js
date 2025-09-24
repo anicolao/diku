@@ -115,7 +115,7 @@ describe('Simplified Diku MUD AI Player', () => {
     test('should reject multi-line commands', () => {
       client = new MudClient(mockConfig);
       
-      const multiLineResponse = `**Plan**: Create character
+      const multiLineResponse = `<plan>Create character</plan>
       
 <command>
 north
@@ -129,7 +129,7 @@ south
     test('should accept single-line commands', () => {
       client = new MudClient(mockConfig);
       
-      const singleLineResponse = `**Plan**: Look around
+      const singleLineResponse = `<plan>Look around</plan>
       
 <command>
 look
@@ -142,7 +142,7 @@ look
     test('should extract plan and next step from LLM response', () => {
       client = new MudClient(mockConfig);
       
-      const detailedResponse = `**Plan**: I need to create a character and start exploring
+      const detailedResponse = `<plan>I need to create a character and start exploring</plan>
       
 **Next Step**: First, I'll look around to see where I am
       
@@ -153,6 +153,20 @@ look
       const result = client.parseLLMResponse(detailedResponse);
       expect(result.plan).toContain('create a character');
       expect(result.nextStep).toContain('look around');
+      expect(result.command).toBe('look');
+    });
+
+    test('should support backward compatibility with markdown-style Plan headers', () => {
+      client = new MudClient(mockConfig);
+      
+      const legacyResponse = `**Plan**: Legacy plan format test
+      
+<command>
+look
+</command>`;
+      
+      const result = client.parseLLMResponse(legacyResponse);
+      expect(result.plan).toBe('Legacy plan format test');
       expect(result.command).toBe('look');
     });
 

@@ -57,12 +57,13 @@ class MudClient {
 You can send text commands over the telnet connection and receive output from the server.
 
 **Workflow**
-1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan> block.
-2. **Command**: Send a <command> block which contains **one line of text** to be transmitted to the server
+1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
+2. **Command**: Send a <command>your command</command> block which contains **one line of text** to be transmitted to the server
 
 **Rules**
 - Your first response must contain a <command> block with your first command
-- Always respond with exactly one command in a <command> block
+- Always respond with exactly one command in a <command> block  
+- Use <plan> blocks to show your planning
 - Read the MUD output carefully and respond appropriately
 - Focus on character creation, leveling, and social interaction
 - **Use anicolao@gmail.com if asked for an email address**
@@ -343,13 +344,19 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   parseLLMResponse(llmResponse) {
     const contextInfo = `${this.conversationHistory.length} messages in conversation history`;
 
-    // Extract plan if present
-    const planMatch = llmResponse.match(/\*\*Plan\*\*:?\s*(.*?)(?=\n\*\*|$)/is);
-    const plan = planMatch ? planMatch[1].trim() : null;
+    // Extract plan from <plan> blocks (XML-style)
+    const planMatch = llmResponse.match(/<plan>\s*(.*?)\s*<\/plan>/is);
+    let plan = planMatch ? planMatch[1].trim() : null;
+    
+    // Fallback: Extract plan from **Plan**: headers (markdown-style)
+    if (!plan) {
+      const planMarkdownMatch = llmResponse.match(/\*\*Plan\*\*:?\s*(.*?)(?=\n|$)/i);
+      plan = planMarkdownMatch ? planMarkdownMatch[1].trim() : null;
+    }
 
-    // Extract next step/reasoning
+    // Extract next step/reasoning (keeping existing logic for compatibility)
     const stepMatch = llmResponse.match(
-      /\*\*(?:Next Step|Command|Action)\*\*:?\s*(.*?)(?=\n\*\*|```|$)/is,
+      /\*\*(?:Next Step|Command|Action)\*\*:?\s*(.*?)(?=\n\*\*|<|$)/is,
     );
     const nextStep = stepMatch ? stepMatch[1].trim() : null;
 
