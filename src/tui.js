@@ -200,9 +200,11 @@ class TUI {
     this.screen.key(['enter'], () => {
       if (this.waitingForApproval && this.approvalCallback) {
         this.waitingForApproval = false;
-        // Clear and show processing message
-        this.inputBox.setContent('');
-        this.inputBox.setContent('Command approved. Processing...');
+        // Append processing message with timestamp (consistent with updateInputStatus)
+        const timestamp = new Date().toLocaleTimeString();
+        const currentContent = this.inputBox.getContent();
+        this.inputBox.setContent(currentContent + `{bold}[${timestamp}]{/bold} Command approved. Processing...\n`);
+        this.inputBox.scrollTo(this.inputBox.getScrollHeight());
         this.screen.render();
         this.approvalCallback();
         this.approvalCallback = null;
@@ -291,11 +293,31 @@ class TUI {
       this.waitingForApproval = true;
       this.approvalCallback = resolve;
       
-      // Clear existing content first, then set new message
-      this.inputBox.setContent('');
-      this.inputBox.setContent(`${message}\n\n{bold}{yellow-fg}Press ENTER to approve, or Ctrl+C to quit{/yellow-fg}{/bold}`);
+      // Append approval prompt with clear visual separator (consistent with other methods)
+      const timestamp = new Date().toLocaleTimeString();
+      const currentContent = this.inputBox.getContent();
+      const separator = '\n' + '━'.repeat(35) + '\n';
+      const promptContent = `${separator}{bold}[${timestamp}] APPROVAL REQUIRED{/bold}\n${message}\n\n{bold}{yellow-fg}Press ENTER to approve, or Ctrl+C to quit{/yellow-fg}{/bold}\n`;
+      this.inputBox.setContent(currentContent + promptContent);
+      this.inputBox.scrollTo(this.inputBox.getScrollHeight());
       this.screen.render();
     });
+  }
+
+  /**
+   * Clear the input box content properly
+   */
+  clearInputBox() {
+    if (!this.inputBox) return;
+    
+    // Multiple approaches to ensure clearing works with blessed.js
+    this.inputBox.setContent('');
+    this.inputBox.setScrollPerc(0);
+    // Force a repaint by temporarily hiding and showing
+    this.inputBox.hide();
+    this.screen.render();
+    this.inputBox.show();
+    this.screen.render();
   }
 
   /**
