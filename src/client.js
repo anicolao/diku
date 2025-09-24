@@ -6,6 +6,7 @@
 const Telnet = require('telnet-client');
 const axios = require('axios');
 const TUI = require('./tui');
+const CharacterManager = require('./character-manager');
 
 class MudClient {
   constructor(config, options = {}) {
@@ -20,28 +21,16 @@ class MudClient {
     // Initialize TUI
     this.tui = new TUI();
 
+    // Initialize character management
+    this.characterManager = new CharacterManager(config);
+    this.currentCharacterId = options.characterId || null;
+
     // Conversation history for LLM context
     this.conversationHistory = [];
     this.maxHistoryLength = 10; // Keep last 10 interactions
 
-    // System prompt for the LLM
-    this.systemPrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
-
-**Environment**
-You can send text commands over the telnet connection and receive output from the server.
-
-**Workflow**
-1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan> block.
-2. **Command**: Send a \`\`\`telnet code block which contains **one line of text** to be transmitted to the server
-
-**Rules**
-- Your first response must contain a \`\`\`telnet code block with your first command
-- Always respond with exactly one command in a \`\`\`telnet block
-- Read the MUD output carefully and respond appropriately
-- Focus on character creation, leveling, and social interaction
-- **Use anicolao@gmail.com if asked for an email address**
-- **Always** include a \`\`\`telnet block
-`;
+    // Generate system prompt based on character selection
+    this.systemPrompt = this.generateSystemPrompt();
 
     // Initialize conversation history with system prompt
     this.conversationHistory.push({
@@ -56,6 +45,90 @@ You can send text commands over the telnet connection and receive output from th
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  /**
+   * Generate system prompt based on character selection
+   */
+  generateSystemPrompt() {
+    const basePrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
+
+**Environment**
+You can send text commands over the telnet connection and receive output from the server.
+
+**Workflow**
+1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
+2. **Command**: Send a <command>your command</command> block which contains **one line of text** to be transmitted to the server
+
+**Rules**
+- Your first response must contain a <command> block with your first command
+- Always respond with exactly one command in a <command> block  
+- Use <plan> blocks to show your planning
+- Read the MUD output carefully and respond appropriately
+- Focus on character creation, leveling, and social interaction
+- **Use anicolao@gmail.com if asked for an email address**
+- **Always** include a <command> block
+`;
+
+    // Add character-specific context if a character is selected
+    if (this.currentCharacterId) {
+      const characterContext = this.characterManager.generateCharacterContext(this.currentCharacterId);
+      if (characterContext) {
+        return basePrompt + `
+
+**Character Context**
+Continuing as: ${characterContext.name} (Level ${characterContext.level} ${characterContext.class}, ${characterContext.race})
+
+Character password: ${characterContext.password}
+Last location: ${characterContext.location}
+Recent memories:
+${characterContext.memories}
+
+Login: Send your character name as the first command.
+
+Record experiences:
+<record-memory>
+{
+  "summary": "Brief description",
+  "type": "level_up|social|combat|exploration|quest", 
+  "details": { "key": "value" }
+}
+</record-memory>
+
+Continue with this character's established goals and relationships.`;
+      }
+    }
+
+    // For new character creation
+    return basePrompt + `
+
+**Character Creation**
+First Command: Send <command>
+start
+</command>
+
+After creating your character, record it:
+<new-character>
+{
+  "name": "YourCharacterName",
+  "class": "chosen_class",
+  "race": "chosen_race", 
+  "password": "your_password",
+  "level": 1,
+  "location": "current_location"
+}
+</new-character>
+
+Record significant experiences:
+<record-memory>
+{
+  "summary": "Brief description",
+  "type": "level_up|social|combat|exploration|quest",
+  "details": { "key": "value" }
+}
+</record-memory>
+
+System responds with "OK" or "ERROR - message". Use these tools when appropriate.`;
   }
 
   /**
@@ -182,6 +255,29 @@ You can send text commands over the telnet connection and receive output from th
       // Parse and display LLM response
       const parsed = this.parseLLMResponse(llmResponse);
 
+      // Process character management commands
+      const characterResponses = this.characterManager.processLLMResponse(llmResponse, this.currentCharacterId);
+      if (characterResponses.length > 0) {
+        for (const response of characterResponses) {
+          this.tui.showDebug(`💾 Character System: ${response}`);
+          
+          // If a new character was created, set it as current
+          if (response.startsWith('OK - Character recorded:') && !this.currentCharacterId) {
+            const characters = this.characterManager.getCharactersList();
+            if (characters.length > 0) {
+              this.currentCharacterId = characters[characters.length - 1].id; // Use the most recently created
+              this.tui.showDebug(`🆔 Set current character ID: ${this.currentCharacterId}`);
+            }
+          }
+          
+          // Send system response back to LLM
+          this.conversationHistory.push({
+            role: 'tool',
+            content: response,
+          });
+        }
+      }
+
       if (!parsed.command) {
         parsed.command = '\n';
         this.tui.showLLMStatus({ error: 'No command found, sending newline to continue.' });
@@ -248,17 +344,23 @@ You can send text commands over the telnet connection and receive output from th
   parseLLMResponse(llmResponse) {
     const contextInfo = `${this.conversationHistory.length} messages in conversation history`;
 
-    // Extract plan if present
-    const planMatch = llmResponse.match(/\*\*Plan\*\*:?\s*(.*?)(?=\n\*\*|$)/is);
-    const plan = planMatch ? planMatch[1].trim() : null;
+    // Extract plan from <plan> blocks (XML-style)
+    const planMatch = llmResponse.match(/<plan>\s*(.*?)\s*<\/plan>/is);
+    let plan = planMatch ? planMatch[1].trim() : null;
+    
+    // Fallback: Extract plan from **Plan**: headers (markdown-style)
+    if (!plan) {
+      const planMarkdownMatch = llmResponse.match(/\*\*Plan\*\*:?\s*(.*?)(?=\n|$)/i);
+      plan = planMarkdownMatch ? planMarkdownMatch[1].trim() : null;
+    }
 
-    // Extract next step/reasoning
+    // Extract next step/reasoning (keeping existing logic for compatibility)
     const stepMatch = llmResponse.match(
-      /\*\*(?:Next Step|Command|Action)\*\*:?\s*(.*?)(?=\n\*\*|```|$)/is,
+      /\*\*(?:Next Step|Command|Action)\*\*:?\s*(.*?)(?=\n\*\*|<|$)/is,
     );
     const nextStep = stepMatch ? stepMatch[1].trim() : null;
 
-    // Extract command from telnet code block
+    // Extract command from response
     const command = this.extractCommand(llmResponse);
 
     // Display the parsed information in TUI
@@ -283,7 +385,7 @@ You can send text commands over the telnet connection and receive output from th
 
       statusData.command = command;
     } else {
-      statusData.error = 'No command found in telnet block';
+      statusData.error = 'No command found in <command> block or code block';
     }
 
     this.tui.showLLMStatus(statusData);
@@ -291,22 +393,28 @@ You can send text commands over the telnet connection and receive output from th
   }
 
   /**
-   * Extract telnet command from LLM response
+   * Extract command from LLM response
    */
   extractCommand(llmResponse) {
-    // Look for ```telnet code blocks
+    // Look for <command> blocks (preferred format)
+    const commandMatch = llmResponse.match(/<command>\s*(.*?)\s*<\/command>/s);
+    if (commandMatch) {
+      return commandMatch[1].trim();
+    }
+
+    // Look for ```telnet code blocks (legacy)
     const telnetMatch = llmResponse.match(/```telnet\s*\n?(.*?)\n?```/s);
     if (telnetMatch) {
       return telnetMatch[1].trim();
     }
 
-    // Fallback: look for any code block
+    // Look for any code block (fallback)
     const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
     if (codeMatch) {
       return codeMatch[1].trim();
     }
 
-    // No code block found
+    // No command block found
     return null;
   }
 
