@@ -4,7 +4,6 @@
  */
 
 const EventEmitter = require('events');
-const ansiRegex = require('ansi-regex');
 const logger = require('../utils/logger');
 
 class OutputParser extends EventEmitter {
@@ -36,7 +35,10 @@ class OutputParser extends EventEmitter {
       // Common messages
       cantGo: /You can't go that way/i,
       cantSee: /You (can't see|don't see)/i,
-      inventory: /You are carrying:/i
+      inventory: /You are carrying:/i,
+      
+      // ANSI escape codes
+      ansi: /\x1b\[[0-9;]*m/g
     };
   }
 
@@ -131,7 +133,7 @@ class OutputParser extends EventEmitter {
    * Strip ANSI color codes from text
    */
   stripAnsiCodes(text) {
-    return text.replace(ansiRegex(), '');
+    return text.replace(this.patterns.ansi, '');
   }
 
   /**

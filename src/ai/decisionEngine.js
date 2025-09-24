@@ -8,11 +8,12 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 
 class DecisionEngine extends EventEmitter {
-  constructor(ollamaConfig, behaviorConfig) {
+  constructor(ollamaConfig, behaviorConfig, options = {}) {
     super();
     
     this.ollamaConfig = ollamaConfig;
     this.behaviorConfig = behaviorConfig;
+    this.options = options; // Include dry-run option
     this.logger = logger.child({ component: 'DecisionEngine' });
     
     this.httpClient = axios.create({
@@ -34,8 +35,12 @@ class DecisionEngine extends EventEmitter {
     try {
       this.logger.info('Initializing AI decision engine...');
       
-      // Test connection to Ollama
-      await this.testOllamaConnection();
+      // Skip Ollama connection test in dry-run mode
+      if (!this.options.dryRun) {
+        await this.testOllamaConnection();
+      } else {
+        this.logger.info('DRY RUN MODE: Skipping Ollama connection test');
+      }
       
       this.initialized = true;
       this.logger.info('AI decision engine initialized');
@@ -204,6 +209,12 @@ Your decision:`;
    * Query Ollama API for decision
    */
   async queryOllama(prompt, context) {
+    // In dry-run mode, return a mock response
+    if (this.options.dryRun) {
+      this.logger.info('DRY RUN MODE: Using mock Ollama response');
+      return 'explore: Looking for new areas to discover';
+    }
+    
     try {
       const response = await this.httpClient.post('/api/generate', {
         model: this.ollamaConfig.model,

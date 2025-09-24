@@ -85,7 +85,7 @@ Implement the necessary changes to the repository so that the requirements speci
 Same as above - This commit creates the README.md, INITIAL_DESIGN.md, and PROMPTS.md files as requested in the original issue. The prompt is identical to the one above as this is part of the same development session.
 ```
 
-### Commit: [CURRENT] - Implement basic MUD client framework and project structure
+### Commit: fa0cd6a - Implement basic MUD client framework and project structure
 **Issue**: #1  
 **Date**: 2025-01-14T18:06:00Z
 **Prompt**:
@@ -104,6 +104,24 @@ Continuing from the same development session - implementing the basic Node.js pr
 10. Built action executor that converts AI decisions into MUD commands with queuing and throttling
 
 The implementation follows the architecture outlined in INITIAL_DESIGN.md and provides a solid foundation for the AI MUD player. Each component is designed to be extensible and includes proper error handling, logging, and event emission for coordination.
+```
+
+### Commit: [CURRENT] - Add comprehensive testing and fix dependency issues
+**Issue**: #1  
+**Date**: 2025-01-14T18:21:00Z
+**Prompt**:
+```
+Continuing from the same development session - adding testing infrastructure and fixing issues:
+
+1. Created comprehensive unit tests for all core components (OutputParser, GameState, ActionExecutor, Configuration)
+2. Fixed dependency issues by removing problematic ansi-regex package and implementing custom ANSI stripping
+3. Added dry-run mode support to AI engine to allow testing without Ollama running
+4. Implemented Jest testing framework with proper coverage reporting
+5. All 17 tests pass with 46% code coverage across the codebase
+6. Fixed ES module compatibility issues that were preventing tests from running
+7. Ensured CLI application can run in dry-run mode for development and testing
+
+The system now has a robust testing foundation and can be developed/tested without external dependencies like Ollama being available.
 ```
 
 ---

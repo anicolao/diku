@@ -64,7 +64,7 @@ class MudClient extends EventEmitter {
       await this.stateManager.initialize();
       
       // Initialize AI engine
-      this.aiEngine = new AIEngine(this.config.ollama, this.config.behavior);
+      this.aiEngine = new AIEngine(this.config.ollama, this.config.behavior, this.options);
       await this.aiEngine.initialize();
       
       // Initialize action executor
