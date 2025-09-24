@@ -23,13 +23,16 @@ class TUI {
    * Initialize the blessed screen and create UI layout
    */
   initializeScreen() {
-    // Force color support and create main screen
+    // Force color support and create main screen with blue background
     this.screen = blessed.screen({
       smartCSR: true,
       title: 'Diku MUD AI Player',
       fullUnicode: true,
       dockBorders: true,
-      warnings: false
+      warnings: false,
+      style: {
+        bg: 'blue'
+      }
     });
     
     // Force color mode if terminal doesn't detect it properly
@@ -52,7 +55,7 @@ class TUI {
         fg: 'bright-white',
         bg: 'blue',
         border: {
-          fg: 'blue'
+          bg: 'blue'
         }
       },
       scrollable: true,
@@ -81,7 +84,7 @@ class TUI {
         fg: 'white',
         bg: 'blue',
         border: {
-          fg: 'blue'
+          bg: 'blue'
         }
       },
       scrollable: true,
@@ -110,7 +113,7 @@ class TUI {
         fg: 'bright-white',
         bg: 'blue',
         border: {
-          fg: 'blue'
+          bg: 'blue'
         }
       },
       scrollable: true,
@@ -139,7 +142,7 @@ class TUI {
         fg: 'bright-white',
         bg: 'blue',
         border: {
-          fg: 'blue'
+          bg: 'blue'
         }
       },
       label: ' User Input / Approval '
