@@ -398,6 +398,30 @@ Need to implement:
 This will help the LLM understand what actions it has taken previously and make more informed decisions based on the accumulated gameplay experience.
 ```
 
+### Commit: [CURRENT] - Add NPC interaction help command instructions to system prompt  
+**Issue**: [GitHub Copilot Task - LLM trouble interacting with characters]
+**Date**: 2025-01-14T20:00:00Z  
+**Prompt**:
+```
+**GitHub Copilot Coding Agent Task**
+
+This issue has been assigned to GitHub Copilot for automated resolution.
+
+**Task Request:**
+the LLM is having trouble interacting with characters in the game. Add to the system prompt instructions to start by sending the NPC a 'help' command, and thereafter to stick to the vocabulary suggested by 'help'
+
+Implementation completed:
+1. Added two new rules to the system prompt in `src/client.js`:
+   - "When interacting with NPCs: Start by sending them a 'help' command to learn their available commands"
+   - "After getting help from an NPC: Stick to the vocabulary and commands suggested by their 'help' response"
+2. Added a focused test to validate the new instructions are present in the system prompt
+3. Validated all existing tests still pass (20/20)
+4. Confirmed linting passes and dry-run functionality works
+5. Updated PROMPTS.md as per project requirements
+
+The changes are minimal and surgical, adding only the necessary instructions to improve NPC interaction without disrupting existing functionality.
+```
+
 ---
 
 ## Rules for Prompt Tracking

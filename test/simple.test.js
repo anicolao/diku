@@ -178,6 +178,13 @@ look
       expect(client.systemPrompt).toContain('<command> block');
     });
 
+    test('should include NPC interaction help instructions in system prompt', () => {
+      client = new MudClient(mockConfig);
+      expect(client.systemPrompt).toContain('When interacting with NPCs');
+      expect(client.systemPrompt).toContain("sending them a 'help' command");
+      expect(client.systemPrompt).toContain('Stick to the vocabulary and commands suggested');
+    });
+
     test('should handle debug mode', () => {
       client = new MudClient(mockConfig, { debug: true });
       expect(client.debug).toBe(true);

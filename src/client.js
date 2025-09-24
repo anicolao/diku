@@ -68,6 +68,8 @@ You can send text commands over the telnet connection and receive output from th
 - Focus on character creation, leveling, and social interaction
 - **Use anicolao@gmail.com if asked for an email address**
 - **Always** include a <command> block
+- **When interacting with NPCs**: Start by sending them a 'help' command to learn their available commands
+- **After getting help from an NPC**: Stick to the vocabulary and commands suggested by their 'help' response
 `;
 
     // Add character-specific context if a character is selected
