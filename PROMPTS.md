@@ -141,6 +141,47 @@ Final development session cleanup - adding code quality tools and fixing linting
 The codebase now has consistent style, proper linting, and is ready for production use. All components work correctly with comprehensive error handling and testing.
 ```
 
+### Commit: [CURRENT] - Simplify design to use LLM-driven approach per user feedback
+**Issue**: #1  
+**Date**: 2025-01-14T18:35:00Z
+**Prompt**:
+```
+You have been given comments on the previous commits you made in the repository.
+
+<comment_new>
+<comment_id>3326021217</comment_id>
+<author>@anicolao</author>
+@copilot you went WAY beyond what the prompt asked for here by generating an entire structure that is much more complex than the design I was hoping for. I'd like the system prompt for the Ollama LLM to be something like:
+
+You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance
+to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
+
+**Environment**
+You can send text commands over the telnet connection and receive output from the server.
+
+**Workflow**
+1. **Plan** Create a short term plan of what you want to accomplish. Display this in a ```telnet block which contains the text to be transmitted to the server
+
+**Rules**
+- Your first response must contain a ```
+
+Then, the job of the client code is to pass the data from the telnet connection to the LLM. The client itself should have none of the smarts you have built into it, it should be attempting to see if the LLM can navigate the gameplay without assistance. 
+
+Rewrite the initial design to reflect this reduced scope, remove code that isn't related to this reduced scope, and implement.
+
+Don't forget to add this prompt to the PROMPTS.md log of all prompts.
+</comment_new>
+
+User feedback indicates the implementation was too complex. They want a much simpler approach where:
+1. The LLM (via Ollama) contains all the intelligence and game-playing logic
+2. The client should be very simple - just pass telnet data to/from the LLM
+3. No complex AI decision engines, state managers, or parsing logic in the client
+4. The LLM should receive a specific system prompt about being a Diku MUD player
+5. The goal is to test if the LLM can navigate gameplay without assistance
+
+Need to simplify the design and remove unnecessary complexity.
+```
+
 ---
 
 ## Rules for Prompt Tracking

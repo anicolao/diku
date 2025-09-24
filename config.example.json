@@ -2,40 +2,13 @@
   "ollama": {
     "baseUrl": "http://localhost:11434",
     "model": "llama2",
-    "temperature": 0.7,
-    "timeout": 30000
+    "temperature": 0.7
   },
   "mud": {
     "host": "arctic.org",
-    "port": 2700,
-    "characterName": "AIPlayer",
-    "autoLogin": true,
-    "reconnectDelay": 5000,
-    "maxReconnectAttempts": 5
+    "port": 2700
   },
   "behavior": {
-    "aggressiveness": 0.5,
-    "exploration": 0.8,
-    "caution": 0.6,
-    "commandDelayMs": 1000,
-    "maxActionsPerMinute": 30
-  },
-  "logging": {
-    "level": "info",
-    "file": "logs/diku-ai.log",
-    "maxFileSize": "50MB",
-    "maxFiles": 5,
-    "console": true
-  },
-  "database": {
-    "path": "data/gamestate.db",
-    "backupInterval": 300000
-  },
-  "advanced": {
-    "debugMode": false,
-    "enableMetrics": true,
-    "metricsPort": 8080,
-    "webInterface": false,
-    "webInterfacePort": 3000
+    "commandDelayMs": 2000
   }
 }

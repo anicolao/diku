@@ -1,266 +1,118 @@
-# Diku MUD AI Player - Initial Design Document
+# Diku MUD AI Player - Initial Design Document (Simplified)
 
 ## Project Goals
 
-Create an autonomous AI player that can successfully play Diku MUDs (specifically Arctic MUD) using the Ollama API for intelligent decision-making. The system should be capable of:
+Create a simple MUD client that connects an LLM (via Ollama API) directly to Arctic MUD to test if the LLM can autonomously play the game without assistance. The system should be:
 
-1. **Autonomous Gameplay**: Play the game without human intervention
-2. **Intelligent Decision Making**: Use LLM reasoning for strategic choices
-3. **Adaptive Learning**: Improve performance through experience
-4. **Robust Error Handling**: Gracefully handle network issues and game state changes
+1. **Simple and Minimal**: The client has no game logic, just passes data between telnet and LLM
+2. **LLM-Driven**: All intelligence comes from the LLM with a specific system prompt
+3. **Experimental**: Test if modern LLMs can navigate MUD gameplay without specialized parsing or state management
 
 ## System Architecture
 
-### High-Level Architecture
+### Simplified Architecture
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   MUD Client    │◄──►│   State Manager  │◄──►│   AI Engine     │
-│  (Telnet/TCP)   │    │   (Game State)   │    │ (Ollama API)    │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                        │                        │
-         │                        │                        │
-         ▼                        ▼                        ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Protocol Parser │    │  Context Store   │    │ Prompt Manager  │
-│ (Text Analysis) │    │  (Memory/DB)     │    │ (Template Sys)  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                        │                        │
-         └────────────────────────┼────────────────────────┘
-                                  │
-                         ┌──────────────────┐
-                         │  Action Executor │
-                         │ (Command Queue)  │
-                         └──────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Arctic MUD    │◄──►│  Simple Client  │◄──►│   Ollama LLM    │
+│   (Telnet)      │    │  (Pass-through) │    │ (All Logic)     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ### Core Components
 
-#### 1. MUD Client (`src/client/`)
-**Purpose**: Handle low-level MUD connection and communication
-- **TelnetClient**: TCP/Telnet connection management
-- **ConnectionManager**: Reconnection logic and connection pooling
-- **ProtocolHandler**: Handle MUD-specific protocols (ANSI, MCCP, etc.)
+#### 1. Simple MUD Client (`src/client.js`)
+**Purpose**: Minimal client that passes data between MUD and LLM
+- **TelnetConnection**: Basic telnet connection to Arctic MUD
+- **OllamaClient**: Send/receive messages to/from Ollama API
+- **MessageLoop**: Simple loop that passes MUD output to LLM and sends LLM commands to MUD
 
-**Key Files**:
-- `client.js` - Main client class
-- `connection.js` - Connection management
-- `protocols.js` - Protocol implementations
+**No complex parsing, no state management, no decision logic**
 
-#### 2. State Manager (`src/state/`)
-**Purpose**: Maintain comprehensive game state
-- **GameState**: Current room, inventory, stats, etc.
-- **WorldMap**: Spatial understanding of the game world
-- **CharacterState**: Player stats, skills, equipment
-- **CombatState**: Active combat tracking
+#### 2. LLM System Prompt
+The LLM receives this system prompt to guide its behavior:
 
-**Key Files**:
-- `gameState.js` - Core state management
-- `worldMap.js` - World mapping and navigation
-- `character.js` - Character state tracking
-- `combat.js` - Combat state management
+```
+You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
 
-#### 3. AI Engine (`src/ai/`)
-**Purpose**: Interface with Ollama and manage AI decision-making
-- **OllamaClient**: API communication with Ollama server
-- **DecisionEngine**: Core AI decision-making logic
-- **ContextBuilder**: Build prompts with relevant context
-- **ActionPlanner**: Plan sequences of actions
+**Environment**
+You can send text commands over the telnet connection and receive output from the server.
 
-**Key Files**:
-- `ollamaClient.js` - Ollama API integration
-- `decisionEngine.js` - Main AI logic
-- `contextBuilder.js` - Prompt construction
-- `actionPlanner.js` - Multi-step planning
+**Workflow**
+1. **Plan**: Create a short term plan of what you want to accomplish
+2. **Command**: Display commands in a ```telnet code block which contains the text to be transmitted to the server
 
-#### 4. Protocol Parser (`src/parser/`)
-**Purpose**: Parse and interpret MUD output
-- **OutputParser**: Parse raw MUD text into structured data
-- **CommandParser**: Understand available commands and syntax
-- **StateExtractor**: Extract game state from text output
-- **EventDetector**: Detect important game events
+**Rules**
+- Your first response must contain a ```telnet code block with your first command
+- Always respond with exactly one command in a ```telnet block
+- Read the MUD output carefully and respond appropriately
+- Focus on character creation, leveling, and social interaction
+```
 
-**Key Files**:
-- `outputParser.js` - Main parsing logic
-- `patterns.js` - Regex patterns for parsing
-- `stateExtractor.js` - State extraction logic
-- `events.js` - Event detection and handling
-
-#### 5. Action Executor (`src/executor/`)
-**Purpose**: Execute AI decisions as MUD commands
-- **CommandQueue**: Queue and throttle commands
-- **CommandValidator**: Validate commands before execution
-- **ResponseTracker**: Track command results
-- **MacroSystem**: Execute complex command sequences
-
-**Key Files**:
-- `commandQueue.js` - Command queuing system
-- `validator.js` - Command validation
-- `executor.js` - Main execution logic
-
-## Implementation Phases
-
-### Phase 1: Foundation (Weeks 1-2)
-- [x] Set up project structure and documentation
-- [ ] Implement basic MUD client with telnet connection
-- [ ] Create simple output parsing for basic room information
-- [ ] Establish Ollama API integration
-- [ ] Basic logging and configuration system
-
-### Phase 2: Core Functionality (Weeks 3-4)
-- [ ] Implement comprehensive state management
-- [ ] Advanced parsing for combat, inventory, and character stats
-- [ ] Basic AI decision-making for movement and exploration
-- [ ] Command queue and execution system
-- [ ] Error handling and reconnection logic
-
-### Phase 3: Intelligence Layer (Weeks 5-6)
-- [ ] Context-aware prompt construction
-- [ ] Multi-step action planning
-- [ ] Combat strategy implementation
-- [ ] Quest and goal tracking
-- [ ] Learning from gameplay experience
-
-### Phase 4: Advanced Features (Weeks 7-8)
-- [ ] World mapping and navigation
-- [ ] Social interaction capabilities
-- [ ] Economic decision-making (buying/selling)
-- [ ] PvP awareness and strategies
-- [ ] Performance optimization
-
-### Phase 5: Testing & Refinement (Weeks 9-10)
-- [ ] Comprehensive testing with Arctic MUD
-- [ ] Performance tuning and optimization
-- [ ] Documentation completion
-- [ ] Bug fixes and edge case handling
-- [ ] Deployment and monitoring setup
-
-## Technical Specifications
+## Implementation Details
 
 ### Technology Stack
 - **Runtime**: Node.js 18+
 - **Language**: JavaScript (ES2022)
-- **AI API**: Ollama REST API
-- **Database**: SQLite for state persistence
-- **Testing**: Jest for unit tests
-- **Logging**: Winston for structured logging
-- **Configuration**: JSON-based with environment overrides
+- **Dependencies**: 
+  - `axios` for Ollama API
+  - `telnet-client` for MUD connection
+  - `winston` for basic logging
 
-### Key Dependencies
-```json
-{
-  "axios": "^1.6.0",         // HTTP client for Ollama API
-  "telnet-client": "^1.4.0", // Telnet protocol support
-  "sqlite3": "^5.1.0",       // Database for state persistence
-  "winston": "^3.11.0",      // Structured logging
-  "lodash": "^4.17.0",       // Utility functions
-  "ansi-regex": "^6.0.0",    // ANSI code parsing
-  "commander": "^11.0.0",    // CLI interface
-  "dotenv": "^16.3.0"        // Environment configuration
-}
-```
+### Core Files
+- `src/index.js` - Main entry point and CLI
+- `src/client.js` - Simple MUD client
+- `src/ollama.js` - Ollama API interface
+- `config.json` - Configuration (Ollama URL, MUD host/port)
 
 ### Data Flow
 
-1. **Input Flow**: MUD → Client → Parser → State Manager
-2. **Decision Flow**: State Manager → AI Engine → Ollama API → Decision
-3. **Output Flow**: Decision → Action Executor → Command Queue → MUD
+1. **MUD → Client**: Raw telnet output received
+2. **Client → LLM**: Send MUD output + system prompt to Ollama
+3. **LLM → Client**: Receive response with command in ```telnet block
+4. **Client → MUD**: Extract command from code block and send to MUD
+5. **Repeat**: Continue the loop
 
-### State Persistence
+### Error Handling
 
-Game state will be persisted in SQLite with the following key tables:
-- `game_sessions`: Track individual play sessions
-- `world_rooms`: Store discovered rooms and connections
-- `character_history`: Track character progression over time
-- `ai_decisions`: Log AI decisions for analysis
-- `performance_metrics`: Store performance data
+- Basic connection error handling and reconnection
+- Simple logging of all interactions
+- Graceful shutdown on errors
 
-### Configuration Management
+### Testing Strategy
 
-Configuration hierarchy (highest priority first):
-1. Command-line arguments
-2. Environment variables
-3. config.json file
-4. Default values
+- Test basic telnet connection to Arctic MUD
+- Test Ollama API communication
+- Manual testing with actual MUD interaction
+- No complex unit tests needed for this simple approach
 
-### Error Handling Strategy
+## Key Differences from Complex Design
 
-- **Connection Errors**: Automatic reconnection with exponential backoff
-- **Parse Errors**: Graceful degradation with error logging
-- **AI API Errors**: Fallback to basic rule-based decisions
-- **State Corruption**: Automatic state recovery from checkpoints
+**Removed Components:**
+- Complex output parser with pattern matching
+- Game state management and world mapping
+- AI decision engine with behavioral parameters
+- Action executor with command queuing
+- Database for state persistence
+- Complex event-driven architecture
 
-### Performance Considerations
+**Simplified Components:**
+- Single file MUD client that just passes data
+- Basic configuration (host, port, Ollama URL)
+- Simple logging for debugging
+- Minimal error handling
 
-- **Response Time**: Target <2 second decision time for normal actions
-- **Memory Usage**: Limit world map to 10,000 rooms maximum
-- **API Calls**: Batch decisions where possible to reduce Ollama calls
-- **Database**: Use connection pooling and prepared statements
+## Success Criteria
 
-### Security Considerations
+The system is successful if:
+1. It can establish telnet connection to Arctic MUD
+2. It can send MUD output to Ollama LLM
+3. It can extract commands from LLM responses
+4. It can send commands back to the MUD
+5. The LLM demonstrates ability to:
+   - Create a character
+   - Navigate the game world
+   - Interact with other players
+   - Make progress toward level 10
 
-- **Credentials**: Store MUD passwords securely (encrypted)
-- **API Keys**: Use environment variables for sensitive data
-- **Network**: Validate all incoming data from MUD
-- **Logging**: Avoid logging sensitive information
-
-## Testing Strategy
-
-### Unit Tests
-- Parser functions with known input/output pairs
-- State management operations
-- AI decision logic with mocked Ollama responses
-- Command validation and execution
-
-### Integration Tests
-- Full parsing pipeline with real MUD output samples
-- AI engine with actual Ollama API calls
-- End-to-end command execution flow
-
-### System Tests
-- Full gameplay sessions with Arctic MUD
-- Extended runtime stability testing
-- Performance benchmarking under load
-
-### Test Data
-- Captured MUD output samples for various scenarios
-- Known good game states for validation
-- Performance benchmarks and regression detection
-
-## Monitoring and Analytics
-
-### Metrics to Track
-- Commands per minute (CPM)
-- Decision accuracy (successful vs failed actions)
-- Experience gained per hour
-- API response times
-- Connection stability
-
-### Logging Strategy
-- Structured JSON logging with Winston
-- Separate log levels for different components
-- Automatic log rotation and archival
-- Performance metrics logging
-
-### Debugging Features
-- Real-time state inspection web interface
-- Command replay system for debugging
-- AI decision reasoning logs
-- Visual world map representation
-
-## Future Enhancements
-
-### Short-term (Next 6 months)
-- Multiple MUD support (other Diku derivatives)
-- Web-based monitoring dashboard
-- Multi-character management
-- Guild/group coordination features
-
-### Long-term (6+ months)
-- Machine learning integration for pattern recognition
-- Advanced combat AI with predictive modeling
-- Economic trading bot capabilities
-- Social interaction and roleplay features
-- Mobile app for monitoring and control
-
-This design document will be updated as the project evolves and new requirements emerge.
+This design focuses on testing the core hypothesis: can an LLM with just a system prompt successfully play a Diku MUD without specialized game logic in the client?
