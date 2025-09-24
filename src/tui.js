@@ -304,9 +304,12 @@ class TUI {
   updateInputStatus(message) {
     if (!this.inputBox) return;
     
-    // Clear existing content and set new message
-    this.inputBox.setContent('');
-    this.inputBox.setContent(message);
+    // Append to existing content with timestamp and separator for better readability
+    const timestamp = new Date().toLocaleTimeString();
+    const newContent = `{bold}[${timestamp}]{/bold} ${message}\n`;
+    const currentContent = this.inputBox.getContent();
+    this.inputBox.setContent(currentContent + newContent);
+    this.inputBox.scrollTo(this.inputBox.getScrollHeight());
     this.screen.render();
   }
 
