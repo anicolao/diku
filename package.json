@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "demo": "node demo.js",
     "dev": "node --watch src/index.js",
     "test": "jest",
     "lint": "eslint src/",
@@ -29,12 +30,13 @@
   },
   "dependencies": {
     "axios": "^1.6.0",
-    "telnet-client": "^1.4.0",
-    "commander": "^11.0.0"
+    "blessed": "^0.1.81",
+    "commander": "^11.0.0",
+    "telnet-client": "^1.4.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "eslint": "^8.0.0"
+    "eslint": "^8.57.1",
+    "jest": "^29.7.0"
   },
   "jest": {
     "testEnvironment": "node"

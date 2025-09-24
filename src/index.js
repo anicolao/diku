@@ -36,15 +36,15 @@ async function main() {
   const options = program.opts();
   
   try {
-    console.log('Starting Diku MUD AI Player v0.2.0 (Simplified)');
-    console.log('Configuration:', {
-      mudHost: config.mud.host,
-      mudPort: config.mud.port,
-      ollamaUrl: config.ollama.baseUrl,
-      model: config.ollama.model
-    });
-    
+    // Only show startup info in dry run mode to avoid interfering with TUI
     if (options.dryRun) {
+      console.log('Starting Diku MUD AI Player v0.2.0 (Simplified)');
+      console.log('Configuration:', {
+        mudHost: config.mud.host,
+        mudPort: config.mud.port,
+        ollamaUrl: config.ollama.baseUrl,
+        model: config.ollama.model
+      });
       console.log('DRY RUN MODE: Will not connect to MUD');
       return;
     }
@@ -63,6 +63,13 @@ async function main() {
       console.log('\nReceived SIGTERM, shutting down gracefully...');
       await mudClient.disconnect();
       process.exit(0);
+    });
+
+    // Handle uncaught exceptions to clean up TUI
+    process.on('uncaughtException', async (error) => {
+      console.error('Uncaught exception:', error);
+      await mudClient.disconnect();
+      process.exit(1);
     });
 
     // Start the client

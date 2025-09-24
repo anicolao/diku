@@ -8,11 +8,27 @@ This project tests whether modern Large Language Models can successfully navigat
 
 ## Features
 
+- **Fancy TUI Interface**: Modern terminal UI with separate panels for different types of information
 - **Simple Telnet Client**: Basic connection to Arctic MUD
 - **Ollama Integration**: Direct LLM communication for all game decisions
 - **LLM-Driven Gameplay**: All intelligence comes from the LLM's system prompt
 - **Minimal Processing**: No parsing, state management, or game logic in the client
+- **User Approval**: Manual confirmation before each command is sent to the MUD
+- **Dark Mode Interface**: Easy-to-read green-on-black terminal display
 - **Experimental Design**: Tests pure LLM capability for MUD gameplay
+
+## User Interface
+
+The application features a sophisticated TUI (Terminal User Interface) with four main panels:
+
+1. **MUD Interaction Panel (70% width, dark mode)**: Displays all MUD output in green-on-black terminal style
+2. **LLM Status Panel (30% width, top right)**: Shows AI plans, reasoning, and commands in blue
+3. **Debug Panel (30% width, bottom right)**: Technical messages and connection status in yellow
+4. **User Input Panel (bottom)**: Command approval area and status messages
+
+### Controls
+- **Enter**: Approve and send the current LLM command to the MUD
+- **Ctrl+C**: Exit the application gracefully
 
 ## Target MUD
 
@@ -38,6 +54,9 @@ cp config.example.json config.json
 
 # Start the AI player
 npm start
+
+# Run demo to see the TUI interface without connecting
+node demo.js
 ```
 
 ## Requirements

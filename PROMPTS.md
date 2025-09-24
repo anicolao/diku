@@ -26,6 +26,28 @@ Each entry follows this format:
 
 ## Development History
 
+### Commit: aa451bf - Implement fancy TUI layout with blessed library
+**Issue**: #3  
+**Date**: 2025-01-18T02:30:00Z
+**Prompt**:
+```
+The repository now contains a basic LLM player that is capable of creating a character. It has a low-tech UI and prompts the user before each LLM response to the mud for easy debugging / to make it easier for the user to see what the LLM is doing. Let's modify this UI to use a fancier TUI layout, with a window to contain the interaction with the Diku in dark mode, and status and debug messages in other panels of the text mode UI. The user should still have to hit enter to accept each command send to the MUD.
+
+Implementation changes:
+1. Added blessed TUI library dependency
+2. Created new TUI class with four main panels:
+   - MUD interaction panel (70% width, dark green-on-black)
+   - LLM status panel (30% width, blue background) for plans and reasoning
+   - Debug panel (30% width, yellow text) for technical messages
+   - Input panel (bottom) for user approval
+3. Replaced all console.log calls with TUI panel updates
+4. Maintained Enter key approval mechanism through blessed event handling
+5. Added proper TUI cleanup on application shutdown
+6. Updated tests to mock TUI module to avoid blessed screen creation during testing
+7. Created demo.js to showcase the new interface
+8. Updated README.md with TUI documentation and controls
+```
+
 ### Commit: 7f823f0 - Initial plan
 **Issue**: #1
 **Date**: 2025-01-14T18:02:33Z

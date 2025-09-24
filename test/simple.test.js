@@ -4,8 +4,21 @@
 
 const MudClient = require('../src/client');
 
+// Mock the TUI module to avoid creating actual blessed screens in tests
+jest.mock('../src/tui', () => {
+  return jest.fn().mockImplementation(() => ({
+    showMudOutput: jest.fn(),
+    showLLMStatus: jest.fn(),
+    showDebug: jest.fn(),
+    updateInputStatus: jest.fn(),
+    waitForApproval: jest.fn().mockResolvedValue(),
+    destroy: jest.fn()
+  }));
+});
+
 describe('Simplified Diku MUD AI Player', () => {
   let mockConfig;
+  let client;
 
   beforeEach(() => {
     mockConfig = {
@@ -24,18 +37,26 @@ describe('Simplified Diku MUD AI Player', () => {
     };
   });
 
+  afterEach(async () => {
+    // Clean up any client instances
+    if (client && client.disconnect) {
+      await client.disconnect();
+    }
+  });
+
   describe('MudClient', () => {
     test('should initialize with config and conversation history', () => {
-      const client = new MudClient(mockConfig);
+      client = new MudClient(mockConfig);
       expect(client.config).toEqual(mockConfig);
       expect(client.isConnected).toBe(false);
       expect(client.conversationHistory).toHaveLength(1);
       expect(client.conversationHistory[0].role).toBe('system');
       expect(client.maxHistoryLength).toBe(10);
+      expect(client.tui).toBeDefined();
     });
 
     test('should maintain conversation history', () => {
-      const client = new MudClient(mockConfig);
+      client = new MudClient(mockConfig);
       
       // Start with system prompt
       expect(client.conversationHistory).toHaveLength(1);
@@ -50,7 +71,7 @@ describe('Simplified Diku MUD AI Player', () => {
     });
 
     test('should truncate conversation history while preserving system prompt', () => {
-      const client = new MudClient(mockConfig);
+      client = new MudClient(mockConfig);
       client.maxHistoryLength = 3; // Set small limit for testing
       
       // Add messages beyond the limit
@@ -72,7 +93,7 @@ describe('Simplified Diku MUD AI Player', () => {
     });
 
     test('should extract commands from LLM response', () => {
-      const client = new MudClient(mockConfig);
+      client = new MudClient(mockConfig);
       
       // Test telnet code block extraction
       const response1 = 'I will create a character.\n\n```telnet\nlook\n```';
@@ -88,10 +109,7 @@ describe('Simplified Diku MUD AI Player', () => {
     });
 
     test('should reject multi-line commands', () => {
-      const client = new MudClient(mockConfig);
-      
-      // Mock console.log to capture output
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      client = new MudClient(mockConfig);
       
       const multiLineResponse = `**Plan**: Create character
       
@@ -102,15 +120,10 @@ south
       
       const result = client.parseLLMResponse(multiLineResponse);
       expect(result.command).toBe(null);
-      
-      consoleSpy.mockRestore();
     });
 
     test('should accept single-line commands', () => {
-      const client = new MudClient(mockConfig);
-      
-      // Mock console.log to capture output
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      client = new MudClient(mockConfig);
       
       const singleLineResponse = `**Plan**: Look around
       
@@ -120,15 +133,10 @@ look
       
       const result = client.parseLLMResponse(singleLineResponse);
       expect(result.command).toBe('look');
-      
-      consoleSpy.mockRestore();
     });
 
     test('should extract plan and next step from LLM response', () => {
-      const client = new MudClient(mockConfig);
-      
-      // Mock console.log to capture output
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      client = new MudClient(mockConfig);
       
       const detailedResponse = `**Plan**: I need to create a character and start exploring
       
@@ -142,12 +150,10 @@ look
       expect(result.plan).toContain('create a character');
       expect(result.nextStep).toContain('look around');
       expect(result.command).toBe('look');
-      
-      consoleSpy.mockRestore();
     });
 
     test('should have correct system prompt', () => {
-      const client = new MudClient(mockConfig);
+      client = new MudClient(mockConfig);
       expect(client.systemPrompt).toContain('expert Diku MUD player');
       expect(client.systemPrompt).toContain('arctic diku');
       expect(client.systemPrompt).toContain('level 10');
@@ -155,7 +161,7 @@ look
     });
 
     test('should handle debug mode', () => {
-      const client = new MudClient(mockConfig, { debug: true });
+      client = new MudClient(mockConfig, { debug: true });
       expect(client.debug).toBe(true);
     });
   });
