@@ -52,7 +52,7 @@ class TUI {
         fg: 'bright-white',
         bg: 'blue',
         border: {
-          fg: 'cyan'
+          fg: 'blue'
         }
       },
       scrollable: true,
@@ -60,7 +60,7 @@ class TUI {
       scrollbar: {
         ch: ' ',
         style: {
-          bg: 'cyan'
+          bg: 'blue'
         }
       },
       label: ' MUD Interaction (Blue Mode) '
@@ -81,7 +81,7 @@ class TUI {
         fg: 'white',
         bg: 'blue',
         border: {
-          fg: 'cyan'
+          fg: 'blue'
         }
       },
       scrollable: true,
@@ -89,7 +89,7 @@ class TUI {
       scrollbar: {
         ch: ' ',
         style: {
-          bg: 'white'
+          bg: 'blue'
         }
       },
       label: ' LLM Status & Plans '
@@ -107,10 +107,10 @@ class TUI {
         type: 'line'
       },
       style: {
-        fg: 'bright-yellow',
+        fg: 'bright-white',
         bg: 'blue',
         border: {
-          fg: 'cyan'
+          fg: 'blue'
         }
       },
       scrollable: true,
@@ -118,7 +118,7 @@ class TUI {
       scrollbar: {
         ch: ' ',
         style: {
-          bg: 'cyan'
+          bg: 'blue'
         }
       },
       label: ' Debug Messages '
@@ -139,7 +139,7 @@ class TUI {
         fg: 'bright-white',
         bg: 'blue',
         border: {
-          fg: 'cyan'
+          fg: 'blue'
         }
       },
       label: ' User Input / Approval '
