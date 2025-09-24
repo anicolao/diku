@@ -7,6 +7,8 @@
 
 const { Command } = require('commander');
 const MudClient = require('./client');
+const CharacterManager = require('./character-manager');
+const CharacterSelector = require('./character-selector');
 
 // Try to load config, with fallback
 let config;
@@ -49,8 +51,24 @@ async function main() {
       return;
     }
 
+    // Character selection flow
+    const characterManager = new CharacterManager(config);
+    const characterSelector = new CharacterSelector(characterManager);
+    const selection = await characterSelector.selectCharacter();
+    
+    let selectedCharacterId = null;
+    if (selection.action === 'use_existing') {
+      selectedCharacterId = selection.characterId;
+      console.log('Selected existing character for play.');
+    } else {
+      console.log('Will create new character during gameplay.');
+    }
+
     // Create and start the simple MUD client
-    const mudClient = new MudClient(config, { debug: options.debug });
+    const mudClient = new MudClient(config, { 
+      debug: options.debug, 
+      characterId: selectedCharacterId 
+    });
     
     // Handle graceful shutdown
     process.on('SIGINT', async () => {

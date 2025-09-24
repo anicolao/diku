@@ -1,0 +1,31 @@
+{
+  "test-char-1": {
+    "characterId": "test-char-1",
+    "name": "Thorin",
+    "password": "dwarven123",
+    "class": "warrior",
+    "race": "dwarf",
+    "level": 3,
+    "location": "Temple of Midgaard",
+    "keyMemories": [
+      "Reached level 3 by killing rabbits in the park",
+      "Met helpful player 'Gandalf' who gave directions"
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "lastPlayed": "2024-01-02T00:00:00.000Z"
+  },
+  "test-char-2": {
+    "characterId": "test-char-2",
+    "name": "Elara",
+    "password": "magic456",
+    "class": "mage",
+    "race": "elf",
+    "level": 1,
+    "location": "Magic Academy",
+    "keyMemories": [
+      "Started magical training"
+    ],
+    "createdAt": "2024-01-01T12:00:00.000Z",
+    "lastPlayed": "2024-01-01T13:00:00.000Z"
+  }
+}

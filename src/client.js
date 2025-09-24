@@ -6,6 +6,7 @@
 const Telnet = require('telnet-client');
 const axios = require('axios');
 const TUI = require('./tui');
+const CharacterManager = require('./character-manager');
 
 class MudClient {
   constructor(config, options = {}) {
@@ -20,12 +21,37 @@ class MudClient {
     // Initialize TUI
     this.tui = new TUI();
 
+    // Initialize character management
+    this.characterManager = new CharacterManager(config);
+    this.currentCharacterId = options.characterId || null;
+
     // Conversation history for LLM context
     this.conversationHistory = [];
     this.maxHistoryLength = 10; // Keep last 10 interactions
 
-    // System prompt for the LLM
-    this.systemPrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
+    // Generate system prompt based on character selection
+    this.systemPrompt = this.generateSystemPrompt();
+
+    // Initialize conversation history with system prompt
+    this.conversationHistory.push({
+      role: 'system',
+      content: this.systemPrompt,
+    });
+
+    this.httpClient = axios.create({
+      baseURL: config.ollama.baseUrl,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  /**
+   * Generate system prompt based on character selection
+   */
+  generateSystemPrompt() {
+    const basePrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
 
 **Environment**
 You can send text commands over the telnet connection and receive output from the server.
@@ -43,19 +69,65 @@ You can send text commands over the telnet connection and receive output from th
 - **Always** include a \`\`\`telnet block
 `;
 
-    // Initialize conversation history with system prompt
-    this.conversationHistory.push({
-      role: 'system',
-      content: this.systemPrompt,
-    });
+    // Add character-specific context if a character is selected
+    if (this.currentCharacterId) {
+      const characterContext = this.characterManager.generateCharacterContext(this.currentCharacterId);
+      if (characterContext) {
+        return basePrompt + `
 
-    this.httpClient = axios.create({
-      baseURL: config.ollama.baseUrl,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+**Character Context**
+Continuing as: ${characterContext.name} (Level ${characterContext.level} ${characterContext.class}, ${characterContext.race})
+
+Character password: ${characterContext.password}
+Last location: ${characterContext.location}
+Recent memories:
+${characterContext.memories}
+
+Login: Send your character name as the first command.
+
+Record experiences:
+<record-memory>
+{
+  "summary": "Brief description",
+  "type": "level_up|social|combat|exploration|quest", 
+  "details": { "key": "value" }
+}
+</record-memory>
+
+Continue with this character's established goals and relationships.`;
+      }
+    }
+
+    // For new character creation
+    return basePrompt + `
+
+**Character Creation**
+First Command: Send \`\`\`telnet
+start
+\`\`\`
+
+After creating your character, record it:
+<new-character>
+{
+  "name": "YourCharacterName",
+  "class": "chosen_class",
+  "race": "chosen_race", 
+  "password": "your_password",
+  "level": 1,
+  "location": "current_location"
+}
+</new-character>
+
+Record significant experiences:
+<record-memory>
+{
+  "summary": "Brief description",
+  "type": "level_up|social|combat|exploration|quest",
+  "details": { "key": "value" }
+}
+</record-memory>
+
+System responds with "OK" or "ERROR - message". Use these tools when appropriate.`;
   }
 
   /**
@@ -181,6 +253,29 @@ You can send text commands over the telnet connection and receive output from th
 
       // Parse and display LLM response
       const parsed = this.parseLLMResponse(llmResponse);
+
+      // Process character management commands
+      const characterResponses = this.characterManager.processLLMResponse(llmResponse, this.currentCharacterId);
+      if (characterResponses.length > 0) {
+        for (const response of characterResponses) {
+          this.tui.showDebug(`💾 Character System: ${response}`);
+          
+          // If a new character was created, set it as current
+          if (response.startsWith('OK - Character recorded:') && !this.currentCharacterId) {
+            const characters = this.characterManager.getCharactersList();
+            if (characters.length > 0) {
+              this.currentCharacterId = characters[characters.length - 1].id; // Use the most recently created
+              this.tui.showDebug(`🆔 Set current character ID: ${this.currentCharacterId}`);
+            }
+          }
+          
+          // Send system response back to LLM
+          this.conversationHistory.push({
+            role: 'tool',
+            content: response,
+          });
+        }
+      }
 
       if (!parsed.command) {
         parsed.command = '\n';

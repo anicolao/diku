@@ -10,5 +10,9 @@
   },
   "behavior": {
     "commandDelayMs": 2000
+  },
+  "characters": {
+    "dataFile": "characters.json",
+    "backupOnSave": true
   }
 }
