@@ -23,7 +23,7 @@ class TUI {
    * Initialize the blessed screen and create UI layout
    */
   initializeScreen() {
-    // Force color support and create main screen with blue background
+    // Force color support and create main screen with blue background everywhere
     this.screen = blessed.screen({
       smartCSR: true,
       title: 'Diku MUD AI Player',
@@ -31,7 +31,8 @@ class TUI {
       dockBorders: true,
       warnings: false,
       style: {
-        bg: 'blue'
+        bg: 'blue',
+        fg: 'white'
       }
     });
     
@@ -39,6 +40,18 @@ class TUI {
     if (this.screen.tput.colors < 256) {
       this.screen.tput.colors = 256;
     }
+
+    // Create a full-screen background element to ensure complete blue coverage
+    this.backgroundElement = blessed.box({
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      style: {
+        bg: 'blue'
+      }
+    });
+    this.screen.append(this.backgroundElement);
 
     // Main MUD interaction panel (dark mode)
     this.mudPanel = blessed.box({
@@ -51,10 +64,15 @@ class TUI {
       border: {
         type: 'line'
       },
+      label: ' MUD Interaction (Blue Mode) ',
       style: {
         fg: 'bright-white',
         bg: 'blue',
         border: {
+          bg: 'blue'
+        },
+        label: {
+          fg: 'bright-white',
           bg: 'blue'
         }
       },
@@ -65,8 +83,7 @@ class TUI {
         style: {
           bg: 'blue'
         }
-      },
-      label: ' MUD Interaction (Blue Mode) '
+      }
     });
 
     // Status panel for LLM plans and decisions
@@ -84,6 +101,10 @@ class TUI {
         fg: 'white',
         bg: 'blue',
         border: {
+          bg: 'blue'
+        },
+        label: {
+          fg: 'bright-white',
           bg: 'blue'
         }
       },
@@ -114,6 +135,10 @@ class TUI {
         bg: 'blue',
         border: {
           bg: 'blue'
+        },
+        label: {
+          fg: 'bright-white',
+          bg: 'blue'
         }
       },
       scrollable: true,
@@ -142,6 +167,10 @@ class TUI {
         fg: 'bright-white',
         bg: 'blue',
         border: {
+          bg: 'blue'
+        },
+        label: {
+          fg: 'bright-white',
           bg: 'blue'
         }
       },
