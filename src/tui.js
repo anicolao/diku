@@ -42,7 +42,7 @@ class TUI {
       },
       style: {
         fg: 'green',
-        bg: 'black',
+        bg: 0, // Explicit ANSI black
         border: {
           fg: 'green'
         }
@@ -100,7 +100,7 @@ class TUI {
       },
       style: {
         fg: 'yellow',
-        bg: 'black',
+        bg: 0, // Explicit ANSI black
         border: {
           fg: 'yellow'
         }
@@ -129,7 +129,7 @@ class TUI {
       },
       style: {
         fg: 'white',
-        bg: 'black',
+        bg: 0, // Explicit ANSI black
         border: {
           fg: 'white'
         }
