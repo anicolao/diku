@@ -114,10 +114,10 @@ class CharacterManager {
         characterId: generateUUID(),
         name: characterData.name,
         password: characterData.password || '',
-        class: characterData.class || 'warrior',
-        race: characterData.race || 'human',
+        class: characterData.class || 'unknown',
+        race: characterData.race || 'unknown',
         level: characterData.level || 1,
-        location: characterData.location || 'starting area',
+        location: characterData.location || 'unknown',
         keyMemories: [],
         createdAt: new Date().toISOString(),
         lastPlayed: new Date().toISOString()

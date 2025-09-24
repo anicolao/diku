@@ -58,15 +58,15 @@ You can send text commands over the telnet connection and receive output from th
 
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan> block.
-2. **Command**: Send a \`\`\`telnet code block which contains **one line of text** to be transmitted to the server
+2. **Command**: Send a \`\`\` code block which contains **one line of text** to be transmitted to the server
 
 **Rules**
-- Your first response must contain a \`\`\`telnet code block with your first command
-- Always respond with exactly one command in a \`\`\`telnet block
+- Your first response must contain a \`\`\` code block with your first command
+- Always respond with exactly one command in a \`\`\` block
 - Read the MUD output carefully and respond appropriately
 - Focus on character creation, leveling, and social interaction
 - **Use anicolao@gmail.com if asked for an email address**
-- **Always** include a \`\`\`telnet block
+- **Always** include a \`\`\` block
 `;
 
     // Add character-specific context if a character is selected
@@ -102,7 +102,7 @@ Continue with this character's established goals and relationships.`;
     return basePrompt + `
 
 **Character Creation**
-First Command: Send \`\`\`telnet
+First Command: Send \`\`\`
 start
 \`\`\`
 
@@ -378,7 +378,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       statusData.command = command;
     } else {
-      statusData.error = 'No command found in telnet block';
+      statusData.error = 'No command found in code block';
     }
 
     this.tui.showLLMStatus(statusData);
@@ -386,16 +386,16 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   }
 
   /**
-   * Extract telnet command from LLM response
+   * Extract command from LLM response
    */
   extractCommand(llmResponse) {
-    // Look for ```telnet code blocks
+    // Look for ```telnet code blocks (legacy)
     const telnetMatch = llmResponse.match(/```telnet\s*\n?(.*?)\n?```/s);
     if (telnetMatch) {
       return telnetMatch[1].trim();
     }
 
-    // Fallback: look for any code block
+    // Look for any code block
     const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
     if (codeMatch) {
       return codeMatch[1].trim();

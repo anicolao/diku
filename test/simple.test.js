@@ -157,7 +157,7 @@ look
       expect(client.systemPrompt).toContain('expert Diku MUD player');
       expect(client.systemPrompt).toContain('arctic diku');
       expect(client.systemPrompt).toContain('level 10');
-      expect(client.systemPrompt).toContain('telnet code block');
+      expect(client.systemPrompt).toContain('code block');
     });
 
     test('should handle debug mode', () => {
