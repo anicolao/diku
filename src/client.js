@@ -103,9 +103,10 @@ You can send text commands over the telnet connection and receive output from th
   async handleMudOutput(data) {
     const output = data.toString();
     
-    if (this.debug) {
-      console.log('MUD OUTPUT:', output);
-    }
+    // Always show MUD output to user (not just in debug mode)
+    console.log('\n=== MUD OUTPUT ===');
+    console.log(output);
+    console.log('=================\n');
     
     // Store the output for context
     this.messageHistory.push({
@@ -148,21 +149,68 @@ You can send text commands over the telnet connection and receive output from th
         console.log('LLM Response:', llmResponse);
       }
 
-      // Extract command from LLM response
-      const command = this.extractCommand(llmResponse);
+      // Parse and display LLM response
+      const parsed = this.parseLLMResponse(llmResponse);
       
-      if (command) {
-        await this.sendToMud(command);
+      if (parsed.command) {
+        await this.sendToMud(parsed.command);
       } else {
-        console.log('No command found in LLM response:', llmResponse);
+        console.log('❌ No valid command found in LLM response');
+        console.log('LLM Response:', llmResponse);
       }
 
     } catch (error) {
       console.error('Error communicating with LLM:', error.message);
       
       // Simple fallback - send 'look' command
+      console.log('🔄 Using fallback command: look');
       await this.sendToMud('look');
     }
+  }
+
+  /**
+   * Parse LLM response and extract plan, reasoning, and command
+   */
+  parseLLMResponse(llmResponse) {
+    console.log('\n=== LLM RESPONSE ===');
+    
+    // Extract plan if present
+    const planMatch = llmResponse.match(/\*\*Plan\*\*:?\s*(.*?)(?=\n\*\*|$)/is);
+    const plan = planMatch ? planMatch[1].trim() : null;
+    
+    // Extract next step/reasoning
+    const stepMatch = llmResponse.match(/\*\*(?:Next Step|Command|Action)\*\*:?\s*(.*?)(?=\n\*\*|```|$)/is);
+    const nextStep = stepMatch ? stepMatch[1].trim() : null;
+    
+    // Extract command from telnet code block
+    const command = this.extractCommand(llmResponse);
+    
+    // Display the parsed information
+    if (plan) {
+      console.log('📋 Plan:', plan);
+    }
+    
+    if (nextStep) {
+      console.log('➡️  Next Step:', nextStep);
+    }
+    
+    if (command) {
+      // Validate command is single line
+      const commandLines = command.split('\n').filter(line => line.trim());
+      if (commandLines.length > 1) {
+        console.log('❌ REJECTED: Command contains multiple lines');
+        console.log('Command was:', command);
+        return { plan, nextStep, command: null };
+      }
+      
+      console.log('🎮 Command:', command);
+    } else {
+      console.log('❌ No command found in telnet block');
+    }
+    
+    console.log('===================\n');
+    
+    return { plan, nextStep, command };
   }
 
   /**
@@ -195,7 +243,7 @@ You can send text commands over the telnet connection and receive output from th
     }
 
     try {
-      console.log('SENDING TO MUD:', command);
+      console.log('🚀 SENDING TO MUD:', command);
       
       await this.telnetSocket.send(command);
       

@@ -47,6 +47,65 @@ describe('Simplified Diku MUD AI Player', () => {
       expect(client.extractCommand(response3)).toBe(null);
     });
 
+    test('should reject multi-line commands', () => {
+      const client = new MudClient(mockConfig);
+      
+      // Mock console.log to capture output
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      const multiLineResponse = `**Plan**: Create character
+      
+\`\`\`telnet
+north
+south
+\`\`\``;
+      
+      const result = client.parseLLMResponse(multiLineResponse);
+      expect(result.command).toBe(null);
+      
+      consoleSpy.mockRestore();
+    });
+
+    test('should accept single-line commands', () => {
+      const client = new MudClient(mockConfig);
+      
+      // Mock console.log to capture output
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      const singleLineResponse = `**Plan**: Look around
+      
+\`\`\`telnet
+look
+\`\`\``;
+      
+      const result = client.parseLLMResponse(singleLineResponse);
+      expect(result.command).toBe('look');
+      
+      consoleSpy.mockRestore();
+    });
+
+    test('should extract plan and next step from LLM response', () => {
+      const client = new MudClient(mockConfig);
+      
+      // Mock console.log to capture output
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      const detailedResponse = `**Plan**: I need to create a character and start exploring
+      
+**Next Step**: First, I'll look around to see where I am
+      
+\`\`\`telnet
+look
+\`\`\``;
+      
+      const result = client.parseLLMResponse(detailedResponse);
+      expect(result.plan).toContain('create a character');
+      expect(result.nextStep).toContain('look around');
+      expect(result.command).toBe('look');
+      
+      consoleSpy.mockRestore();
+    });
+
     test('should have correct system prompt', () => {
       const client = new MudClient(mockConfig);
       expect(client.systemPrompt).toContain('expert Diku MUD player');

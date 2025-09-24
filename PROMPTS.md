@@ -218,6 +218,33 @@ Issues to fix:
 Need to ensure the application runs without errors.
 ```
 
+### Commit: [CURRENT] - Improve LLM interaction with better output display and command validation
+**Issue**: #1  
+**Date**: 2025-01-14T18:45:00Z
+**Prompt**:
+```
+<comment_new>
+<comment_id>3326116295</comment_id>
+<author>@anicolao</author>
+@copilot OK this looks like a better start. But the text from the Diku is not being sent verbatim to the LLM. It should be. The LLM doesn't seem to be following/getting the system prompt. 
+
+Change the code to show the text from the mud and make if the LLM sends more than one line back in the ```telnet block reject it. Show the user the plan teh LLM made, the next step, and the command it is sending before sending the command back to the Diku. 
+</comment_new>
+
+User feedback indicates several improvements needed:
+1. MUD text should be shown verbatim to the user (currently only in debug mode)
+2. LLM responses with multi-line commands in telnet blocks should be rejected
+3. Need to extract and display the LLM's plan and reasoning to the user
+4. Show the plan, next step, and command before sending to MUD for better transparency
+
+Changes needed:
+- Always display MUD output to user with clear formatting
+- Parse LLM responses to extract plan, next step, and command
+- Validate commands are single-line only
+- Provide clear user feedback about what the LLM is thinking and doing
+- Improve error messages and status display
+```
+
 ---
 
 ## Rules for Prompt Tracking
