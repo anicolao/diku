@@ -245,7 +245,7 @@ Changes needed:
 - Improve error messages and status display
 ```
 
-### Commit: [CURRENT] - Add conversation history to improve LLM decision making
+### Commit: 77afc84 - Add conversation history to improve LLM decision making
 **Issue**: #1  
 **Date**: 2025-01-14T18:50:00Z
 **Prompt**:
