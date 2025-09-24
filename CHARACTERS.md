@@ -114,18 +114,33 @@ while making friends within the Diku environment.
 start
 ```
 
-After creating your character, record it using:
-```record-character
+**Character Recording Tool**: After creating your character, record it using:
+```new-character
 {
   "name": "CharacterName",
   "class": "warrior", 
   "race": "human",
+  "password": "chosen_password",
   "basicInfo": {
     "level": 1,
     "location": "Starting location"
   }
 }
 ```
+
+**Memory Recording Tool**: Record significant experiences using:
+```record-memory
+{
+  "summary": "Brief description of the experience",
+  "type": "level_up|social|combat|exploration|quest",
+  "details": {
+    "relevant": "context information"
+  }
+}
+```
+
+The system will respond with "OK" if recording succeeded, or an error message if it failed.
+Use these tools whenever you create a character or experience something significant.
 ```
 
 **For Existing Character Login:**
@@ -136,47 +151,60 @@ You are continuing as an existing character: Thorin (Level 3 Warrior, Human)
 
 **Character Context**
 Last location: Temple of Midgaard
+Character password: password123
 Recent memories:
 - Reached level 3 by killing rabbits in the park
 - Met helpful player 'Gandalf' who gave directions  
 - Currently exploring Temple area for advancement opportunities
 
-**Login Instructions**: Send ```telnet
-Thorin
-password123
+**Login Instructions**: Initiate login by sending your name as the first command.
+
+**Memory Recording Tool**: Record significant experiences using:
+```record-memory
+{
+  "summary": "Brief description of the experience",
+  "type": "level_up|social|combat|exploration|quest", 
+  "details": {
+    "relevant": "context information"
+  }
+}
 ```
 
+The system will respond with "OK" if recording succeeded, or an error message if it failed.
 Continue your session with this character's established goals and relationships.
 ```
 
 ## Memory Management System
 
-### 1. LLM-Controlled Memory Recording
+### 1. LLM-Bot Communication Protocol
 
-**Memory recording is entirely under LLM control**. The LLM decides when to record memories and what information is significant. No automatic triggers or parsing by the client.
+The system uses a clear command-response protocol between the LLM and bot code:
 
-**Character Creation Recording:**
-When the LLM creates a new character, it records the character using:
+**Command Format**: LLM issues commands in code blocks
+**Response Format**: Bot responds with "OK" or error message  
+**Error Handling**: LLM can retry failed commands with corrections
 
-```
-```record-character
+### 2. LLM Command Specification
+
+**Character Creation Command:**
+```new-character
 {
-  "name": "Thorin",
+  "name": "CharacterName",
   "class": "warrior", 
   "race": "human",
+  "password": "chosen_password",
   "basicInfo": {
     "level": 1,
-    "location": "Temple of Midgaard"
-  },
-  "password": "chosen_password"
+    "location": "Starting location"
+  }
 }
 ```
-```
 
-**Memory Recording:**
-When the LLM experiences something significant, it records memories using:
+**Bot Response:**
+- Success: "OK - Character 'CharacterName' recorded"
+- Failure: "ERROR - [specific error message]"
 
-```
+**Memory Recording Command:**
 ```record-memory
 {
   "summary": "Reached level 3 after defeating rabbits in the park",
@@ -188,32 +216,74 @@ When the LLM experiences something significant, it records memories using:
   }
 }
 ```
-```
 
-**Character Update:**
-The LLM can update character information (location, level, etc.) using:
+**Bot Response:**
+- Success: "OK - Memory recorded"
+- Failure: "ERROR - [specific error message]"
+
+### 3. System Prompt Integration
+
+**All system prompts include the memory recording tool:**
 
 ```
-```update-character
+**Memory Recording Tool**: Record significant experiences using:
+```record-memory
 {
-  "level": 4,
-  "location": "Dark Forest",
-  "lastActivity": "Exploring new hunting grounds"
+  "summary": "Brief description of the experience",
+  "type": "level_up|social|combat|exploration|quest",
+  "details": {
+    "relevant": "context information"
+  }
 }
 ```
+
+The system will respond with "OK" if recording succeeded, or an error message if it failed.
+Use this tool whenever you experience something significant that should be remembered.
 ```
 
-### 2. Memory Types Under LLM Control
+**New character system prompts also include:**
 
-The LLM determines what constitutes significant memories:
+```
+**Character Recording Tool**: After creating your character, record it using:
+```new-character
+{
+  "name": "CharacterName",
+  "class": "class_chosen", 
+  "race": "race_chosen",
+  "password": "password_you_set",
+  "basicInfo": {
+    "level": 1,
+    "location": "current_location"
+  }
+}
+```
 
-- **Progress Memories**: Level ups, skill improvements, achievements
-- **Social Memories**: Important player interactions, friendships, conflicts
-- **World Memories**: New location discoveries, quest information
-- **Combat Memories**: Significant battles, deaths, resurrections
-- **Strategic Memories**: Effective hunting spots, useful NPCs, gameplay insights
+The system will respond with "OK" if recording succeeded, or an error message if it failed.
+```
 
-### 3. Memory Context in System Prompt
+### 4. Memory Types and Command Usage
+
+The LLM uses predefined memory types in the ```record-memory command:
+
+- **level_up**: Character advancement, experience gains
+- **social**: Player interactions, friendships, conflicts  
+- **combat**: Significant battles, deaths, resurrections
+- **exploration**: New location discoveries, area knowledge
+- **quest**: Quest progress, NPC information, objectives
+
+**Example Usage:**
+```record-memory
+{
+  "summary": "Died to goblin but learned valuable lesson about combat",
+  "type": "combat",
+  "details": {
+    "location": "Dark Forest", 
+    "lesson": "Need better equipment before fighting groups"
+  }
+}
+```
+
+### 5. Memory Context in System Prompt
 
 Character memories are loaded into the LLM's context as natural language:
 
@@ -244,10 +314,10 @@ class CharacterManager {
   constructor(dataPath = './characters.json') { /* ... */ }
   async loadCharacters() { /* ... */ }
   async saveCharacter(character) { /* ... */ }
-  async updateCharacter(characterId, updates) { /* ... */ }
   async recordMemory(characterId, memory) { /* ... */ }
   generateContextPrompt(character) { /* ... */ }
-  parseLLMCommand(response) { /* Parse record-character/record-memory/update-character */ }
+  parseLLMCommand(response) { /* Parse new-character and record-memory commands */ }
+  executeCommand(command) { /* Execute command and return "OK" or "ERROR - message" */ }
 }
 ```
 
@@ -264,14 +334,16 @@ class UserInterface {
 
 **Modified MudClient** (`src/client.js`):
 - Present user with character selection interface at startup
-- Parse LLM record-character/record-memory/update-character commands
+- Parse LLM ```new-character and ```record-memory commands from responses
+- Respond to LLM commands with "OK" or "ERROR - message"  
 - Include character context in system prompt for existing characters
-- Handle both "start" and login command scenarios
+- Handle both "start" command and character name login scenarios
 
 **Enhanced System Prompt**:
 - User-controlled character selection
-- Context loading for existing characters
-- LLM-controlled memory and character recording
+- Context loading for existing characters  
+- Built-in tool specifications for ```new-character and ```record-memory
+- Clear command-response protocol explanation
 
 ### 3. Configuration Changes
 

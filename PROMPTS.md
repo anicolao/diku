@@ -26,6 +26,24 @@ Each entry follows this format:
 
 ## Development History
 
+### Commit: [PENDING] - Clarify LLM-bot protocol specification with new-character and record-memory commands  
+**Issue**: #9 (comment feedback)
+**Date**: 2024-09-24T13:00:00Z
+**Prompt**:
+```
+@copilot this is close but needs a clearer specification of the protocol between the LLM and the bot code and that specification needs to be built into the system prompt. I suggest we use ```new-character, and ```record-memory as the two commands, and respond OK if recording succeeded and with an error message if not so that the LLM can try again. The system prompt for starting a new character should tell the LLM to use ```new-character to record the character it creates, and teh system prompt in all cases hsould note the existence and purpose of the ```record-memory tool. The login instructions should not bre so explicit (as they are wrong) but should just contain the character name and password, and tell the LLM something like "Initiate login by sending your name as the first command".
+
+Key changes made to CHARACTERS.md:
+1. Clarified LLM-bot communication protocol with command-response structure
+2. Changed to ```new-character and ```record-memory as the primary commands
+3. Added bot response specification: "OK" for success, "ERROR - message" for failure
+4. Built protocol specification directly into system prompts
+5. Made login instructions less explicit - just name/password with general guidance
+6. Added memory type definitions (level_up, social, combat, exploration, quest)
+7. Updated implementation architecture to reflect new protocol
+8. Added example command usage and error handling scenarios
+```
+
 ### Commit: [PENDING] - Revise character memory design to be user-controlled with LLM-driven storage
 **Issue**: #9 (comment feedback)
 **Date**: 2024-09-24T12:30:00Z
