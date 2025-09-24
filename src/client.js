@@ -58,15 +58,15 @@ You can send text commands over the telnet connection and receive output from th
 
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan> block.
-2. **Command**: Send a \`\`\` code block which contains **one line of text** to be transmitted to the server
+2. **Command**: Send a <command> block which contains **one line of text** to be transmitted to the server
 
 **Rules**
-- Your first response must contain a \`\`\` code block with your first command
-- Always respond with exactly one command in a \`\`\` block
+- Your first response must contain a <command> block with your first command
+- Always respond with exactly one command in a <command> block
 - Read the MUD output carefully and respond appropriately
 - Focus on character creation, leveling, and social interaction
 - **Use anicolao@gmail.com if asked for an email address**
-- **Always** include a \`\`\` block
+- **Always** include a <command> block
 `;
 
     // Add character-specific context if a character is selected
@@ -102,9 +102,9 @@ Continue with this character's established goals and relationships.`;
     return basePrompt + `
 
 **Character Creation**
-First Command: Send \`\`\`
+First Command: Send <command>
 start
-\`\`\`
+</command>
 
 After creating your character, record it:
 <new-character>
@@ -353,7 +353,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     );
     const nextStep = stepMatch ? stepMatch[1].trim() : null;
 
-    // Extract command from telnet code block
+    // Extract command from response
     const command = this.extractCommand(llmResponse);
 
     // Display the parsed information in TUI
@@ -378,7 +378,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       statusData.command = command;
     } else {
-      statusData.error = 'No command found in code block';
+      statusData.error = 'No command found in <command> block or code block';
     }
 
     this.tui.showLLMStatus(statusData);
@@ -389,19 +389,25 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Extract command from LLM response
    */
   extractCommand(llmResponse) {
+    // Look for <command> blocks (preferred format)
+    const commandMatch = llmResponse.match(/<command>\s*(.*?)\s*<\/command>/s);
+    if (commandMatch) {
+      return commandMatch[1].trim();
+    }
+
     // Look for ```telnet code blocks (legacy)
     const telnetMatch = llmResponse.match(/```telnet\s*\n?(.*?)\n?```/s);
     if (telnetMatch) {
       return telnetMatch[1].trim();
     }
 
-    // Look for any code block
+    // Look for any code block (fallback)
     const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
     if (codeMatch) {
       return codeMatch[1].trim();
     }
 
-    // No code block found
+    // No command block found
     return null;
   }
 

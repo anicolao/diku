@@ -95,15 +95,19 @@ describe('Simplified Diku MUD AI Player', () => {
     test('should extract commands from LLM response', () => {
       client = new MudClient(mockConfig);
       
-      // Test telnet code block extraction
+      // Test <command> block extraction (preferred format)
+      const response0 = 'I will create a character.\n\n<command>\nlook\n</command>';
+      expect(client.extractCommand(response0)).toBe('look');
+      
+      // Test telnet code block extraction (legacy)
       const response1 = 'I will create a character.\n\n```telnet\nlook\n```';
       expect(client.extractCommand(response1)).toBe('look');
 
-      // Test regular code block extraction
+      // Test regular code block extraction (fallback)
       const response2 = 'Let me examine the area.\n\n```\nexamine room\n```';
       expect(client.extractCommand(response2)).toBe('examine room');
 
-      // Test no code block
+      // Test no command block
       const response3 = 'I need to think about this.';
       expect(client.extractCommand(response3)).toBe(null);
     });
@@ -113,10 +117,10 @@ describe('Simplified Diku MUD AI Player', () => {
       
       const multiLineResponse = `**Plan**: Create character
       
-\`\`\`telnet
+<command>
 north
 south
-\`\`\``;
+</command>`;
       
       const result = client.parseLLMResponse(multiLineResponse);
       expect(result.command).toBe(null);
@@ -127,9 +131,9 @@ south
       
       const singleLineResponse = `**Plan**: Look around
       
-\`\`\`telnet
+<command>
 look
-\`\`\``;
+</command>`;
       
       const result = client.parseLLMResponse(singleLineResponse);
       expect(result.command).toBe('look');
@@ -142,9 +146,9 @@ look
       
 **Next Step**: First, I'll look around to see where I am
       
-\`\`\`telnet
+<command>
 look
-\`\`\``;
+</command>`;
       
       const result = client.parseLLMResponse(detailedResponse);
       expect(result.plan).toContain('create a character');
@@ -157,7 +161,7 @@ look
       expect(client.systemPrompt).toContain('expert Diku MUD player');
       expect(client.systemPrompt).toContain('arctic diku');
       expect(client.systemPrompt).toContain('level 10');
-      expect(client.systemPrompt).toContain('code block');
+      expect(client.systemPrompt).toContain('<command> block');
     });
 
     test('should handle debug mode', () => {
