@@ -3,8 +3,8 @@
  * Connects LLM directly to MUD with minimal processing
  */
 
-const Telnet = require("telnet-client");
-const axios = require("axios");
+const Telnet = require('telnet-client');
+const axios = require('axios');
 
 class MudClient {
   constructor(config, options = {}) {
@@ -41,7 +41,7 @@ You can send text commands over the telnet connection and receive output from th
 
     // Initialize conversation history with system prompt
     this.conversationHistory.push({
-      role: "system",
+      role: 'system',
       content: this.systemPrompt,
     });
 
@@ -49,7 +49,7 @@ You can send text commands over the telnet connection and receive output from th
       baseURL: config.ollama.baseUrl,
       timeout: 30000,
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     });
   }
@@ -60,15 +60,15 @@ You can send text commands over the telnet connection and receive output from th
   async start() {
     try {
       await this.connectToMud();
-      console.log("Connected to MUD, starting LLM interaction...");
-      console.log("💭 Conversation history initialized with system prompt");
+      console.log('Connected to MUD, starting LLM interaction...');
+      console.log('💭 Conversation history initialized with system prompt');
 
       // Send initial prompt to LLM to start the game
       await this.sendToLLM(
-        "You have connected to Arctic MUD. Send start to creating a character, or your name to start logging in if you know a name and password.",
+        'You have connected to Arctic MUD. Send start to creating a character, or your name to start logging in if you know a name and password.',
       );
     } catch (error) {
-      console.error("Error starting MUD client:", error);
+      console.error('Error starting MUD client:', error);
       throw error;
     }
   }
@@ -90,23 +90,23 @@ You can send text commands over the telnet connection and receive output from th
         debug: this.debug,
       };
 
-      this.telnetSocket.on("data", (data) => {
+      this.telnetSocket.on('data', (data) => {
         this.handleMudOutput(data);
       });
 
-      this.telnetSocket.on("close", () => {
-        console.log("MUD connection closed");
+      this.telnetSocket.on('close', () => {
+        console.log('MUD connection closed');
         this.isConnected = false;
       });
 
-      this.telnetSocket.on("error", (error) => {
-        console.error("MUD connection error:", error);
+      this.telnetSocket.on('error', (error) => {
+        console.error('MUD connection error:', error);
       });
 
       await this.telnetSocket.connect(connectionParams);
       this.isConnected = true;
     } catch (error) {
-      console.error("Failed to connect to MUD:", error);
+      console.error('Failed to connect to MUD:', error);
       throw error;
     }
   }
@@ -118,13 +118,13 @@ You can send text commands over the telnet connection and receive output from th
     const output = data.toString();
 
     // Always show MUD output to user (not just in debug mode)
-    console.log("\n=== MUD OUTPUT ===");
+    console.log('\n=== MUD OUTPUT ===');
     console.log(output);
-    console.log("=================\n");
+    console.log('=================\n');
 
     // Store the output for context
     this.messageHistory.push({
-      type: "mud_output",
+      type: 'mud_output',
       content: output,
       timestamp: new Date(),
     });
@@ -140,7 +140,7 @@ You can send text commands over the telnet connection and receive output from th
     try {
       // Add MUD output to conversation history
       this.conversationHistory.push({
-        role: "tool",
+        role: 'tool',
         content: `${mudOutput}`,
       });
 
@@ -149,13 +149,13 @@ You can send text commands over the telnet connection and receive output from th
 
       if (this.debug) {
         console.log(
-          "Sending to LLM with conversation history. Current history length:",
+          'Sending to LLM with conversation history. Current history length:',
           this.conversationHistory.length,
         );
-        console.log("Latest MUD output:", mudOutput);
+        console.log('Latest MUD output:', mudOutput);
       }
 
-      const response = await this.httpClient.post("/api/chat", {
+      const response = await this.httpClient.post('/api/chat', {
         model: this.config.ollama.model,
         messages: this.conversationHistory,
         options: {
@@ -167,12 +167,12 @@ You can send text commands over the telnet connection and receive output from th
       const llmResponse = response.data.message.content;
 
       if (this.debug) {
-        console.log("LLM Response:", llmResponse);
+        console.log('LLM Response:', llmResponse);
       }
 
       // Add LLM response to conversation history
       this.conversationHistory.push({
-        role: "assistant",
+        role: 'assistant',
         content: llmResponse,
       });
 
@@ -180,25 +180,25 @@ You can send text commands over the telnet connection and receive output from th
       const parsed = this.parseLLMResponse(llmResponse);
 
       if (!parsed.command) {
-        parsed.command = "\n";
-        console.log("No command found, sending newline to continue.");
+        parsed.command = '\n';
+        console.log('No command found, sending newline to continue.');
       }
 
       if (parsed.command) {
-        console.log("✅ Sending command to MUD:", parsed.command);
-        console.log("Awaiting your approval first, hit Enter to continue...");
-        await new Promise((resolve) => process.stdin.once("data", resolve));
+        console.log('✅ Sending command to MUD:', parsed.command);
+        console.log('Awaiting your approval first, hit Enter to continue...');
+        await new Promise((resolve) => process.stdin.once('data', resolve));
         await this.sendToMud(parsed.command);
       } else {
-        console.log("❌ No valid command found in LLM response");
-        console.log("LLM Response:", llmResponse);
+        console.log('❌ No valid command found in LLM response');
+        console.log('LLM Response:', llmResponse);
       }
     } catch (error) {
-      console.error("Error communicating with LLM:", error.message);
+      console.error('Error communicating with LLM:', error.message);
 
       // Simple fallback - send 'look' command
-      console.log("🔄 Using fallback command: look");
-      await this.sendToMud("look");
+      console.log('🔄 Using fallback command: look');
+      await this.sendToMud('look');
     }
   }
 
@@ -235,14 +235,14 @@ You can send text commands over the telnet connection and receive output from th
         (msg, index) =>
           `${index + 1}. ${msg.role}: ${msg.content.substring(0, 100)}...`,
       )
-      .join("\n");
+      .join('\n');
   }
 
   /**
    * Parse LLM response and extract plan, reasoning, and command
    */
   parseLLMResponse(llmResponse) {
-    console.log("\n=== LLM RESPONSE ===");
+    console.log('\n=== LLM RESPONSE ===');
     console.log(
       `💭 Context: ${this.conversationHistory.length} messages in conversation history`,
     );
@@ -262,28 +262,28 @@ You can send text commands over the telnet connection and receive output from th
 
     // Display the parsed information
     if (plan) {
-      console.log("📋 Plan:", plan);
+      console.log('📋 Plan:', plan);
     }
 
     if (nextStep) {
-      console.log("➡️  Next Step:", nextStep);
+      console.log('➡️  Next Step:', nextStep);
     }
 
     if (command) {
       // Validate command is single line
-      const commandLines = command.split("\n").filter((line) => line.trim());
+      const commandLines = command.split('\n').filter((line) => line.trim());
       if (commandLines.length > 1) {
-        console.log("❌ REJECTED: Command contains multiple lines");
-        console.log("Command was:", command);
+        console.log('❌ REJECTED: Command contains multiple lines');
+        console.log('Command was:', command);
         return { plan, nextStep, command: null };
       }
 
-      console.log("🎮 Command:", command);
+      console.log('🎮 Command:', command);
     } else {
-      console.log("❌ No command found in telnet block");
+      console.log('❌ No command found in telnet block');
     }
 
-    console.log("===================\n");
+    console.log('===================\n');
 
     return { plan, nextStep, command };
   }
@@ -313,18 +313,18 @@ You can send text commands over the telnet connection and receive output from th
    */
   async sendToMud(command) {
     if (!this.isConnected || !this.telnetSocket) {
-      console.error("Cannot send command: not connected to MUD");
+      console.error('Cannot send command: not connected to MUD');
       return;
     }
 
     try {
-      console.log("🚀 SENDING TO MUD:", command);
+      console.log('🚀 SENDING TO MUD:', command);
 
       await this.telnetSocket.send(command);
 
       // Store the command for context
       this.messageHistory.push({
-        type: "command_sent",
+        type: 'command_sent',
         content: command,
         timestamp: new Date(),
       });
@@ -332,7 +332,7 @@ You can send text commands over the telnet connection and receive output from th
       // Add a small delay to avoid flooding
       await this.sleep(this.config.behavior?.commandDelayMs || 2000);
     } catch (error) {
-      console.error("Error sending command to MUD:", error);
+      console.error('Error sending command to MUD:', error);
     }
   }
 
@@ -344,7 +344,7 @@ You can send text commands over the telnet connection and receive output from th
       try {
         await this.telnetSocket.end();
       } catch (error) {
-        console.error("Error disconnecting from MUD:", error);
+        console.error('Error disconnecting from MUD:', error);
       }
     }
     this.isConnected = false;
