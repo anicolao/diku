@@ -1,0 +1,44 @@
+TUI Layout with All-Blue Theme (Blue Backgrounds + Blue Borders)
+================================================================
+
+┌─ MUD Interaction (Blue Mode) ─────────────────────────────────┐┌─ LLM Status & Plans ──┐
+│ BLUE BACKGROUND                                               ││ BLUE BACKGROUND        │
+│ === MUD OUTPUT ===                                            ││ 💭 5 messages in       │
+│ Welcome to Arctic MUD!                                        ││    conversation        │
+│                                                               ││ 📋 Plan: Create char   │
+│ You are standing in a dimly lit chamber.                     ││ ➡️  Next: Look around   │
+│ A small door leads north.                                     ││ 🎮 Command: look        │
+│ There is a rusty key here.                                   ││                        │
+│                                                               ││                        │
+│ [18:30:15] You pick up the rusty key.                       │├─ Debug Messages ───────┤
+│                                                               ││ BLUE BACKGROUND        │
+│ Inventory: rusty key                                          ││                        │
+│                                                               ││ [18:30:15] Connected   │
+│ BRIGHT WHITE TEXT ON BLUE BACKGROUND                         ││ [18:30:16] LLM ready   │
+│ BLUE BORDERS (not cyan)                                      ││ [18:30:17] Waiting...  │
+└───────────────────────────────────────────────────────────────┘│ BRIGHT WHITE TEXT      │
+┌─ User Input / Approval ────────────────────────────────────────┤ BLUE BORDERS           │
+│ BLUE BACKGROUND                                               │└────────────────────────┘
+│ ✅ Ready to send command to MUD: get key                      │
+│                                                               │
+│ Press ENTER to approve, or Ctrl+C to quit                    │
+│ BRIGHT WHITE TEXT ON BLUE BACKGROUND                         │
+│ BLUE BORDERS (not cyan)                                      │
+└───────────────────────────────────────────────────────────────┘
+
+Changes Made in This Update:
+============================
+
+1. ALL BORDERS NOW BLUE (instead of cyan):
+   - MUD panel: Blue border (was cyan)
+   - Status panel: Blue border (was cyan)  
+   - Debug panel: Blue border (was cyan)
+   - Input panel: Blue border (was cyan)
+
+2. DEBUG PANEL TEXT CHANGED:
+   - Debug panel text: BRIGHT WHITE (was bright yellow)
+
+3. SCROLLBARS ALSO BLUE:
+   - All scrollbars now use blue color for complete consistency
+
+The interface now has complete visual uniformity with all elements using blue colors.
