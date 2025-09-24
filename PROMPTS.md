@@ -26,6 +26,31 @@ Each entry follows this format:
 
 ## Development History
 
+### Commit: [PENDING] - Create character memory system design document
+**Issue**: #[NEW] 
+**Date**: 2024-09-24T11:55:00Z
+**Prompt**:
+```
+This is msotly working, but the bot/LLM can't remember the usernames created. Create a design doc for basic memories for each character so that the user can choose what character they want at startup if existing characters are available to the bot. Write *only* the design document, CHARACTERS.md, for review and approval.
+
+Problem analysis:
+- Current LLM-driven MUD client successfully creates characters but has no persistence
+- Bot forgets character names and details between sessions
+- Need character memory system that preserves the minimal, LLM-centric architecture
+- Solution should allow character selection at startup and provide context to LLM
+
+Design document includes:
+1. Character data model with essential information (name, class, level, location, memories)
+2. Character selection workflow using enhanced LLM prompts
+3. Memory management system for key gameplay events
+4. Local JSON file storage approach
+5. Integration with existing minimal architecture
+6. Error handling and privacy considerations
+7. Implementation phases and success metrics
+
+The design maintains the project's core philosophy of simplicity while addressing character persistence needs.
+```
+
 ### Commit: aa451bf - Implement fancy TUI layout with blessed library
 **Issue**: #3  
 **Date**: 2025-01-18T02:30:00Z
