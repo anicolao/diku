@@ -26,6 +26,87 @@ Each entry follows this format:
 
 ## Development History
 
+### Commit: [PENDING] - Simplify CHARACTERS.md and use XML-style delimiters for easier parsing
+**Issue**: #9 (comment feedback)
+**Date**: 2024-09-24T13:30:00Z
+**Prompt**:
+```
+@copilot getting close. Two big problems: (1) the protocol doesn't look easy to parse; amke sure the record memory and new character commands are clearly delimited so that they are easy to parse out. Perhaps use <new-character></new-character> and <record-memory></record-memory> blocks instead of how it is currently specified. (2) the design document is way too long. remember that an LLM has to read this into context and implement it, go through and simplify/use less text wehre possible and remove almost all teh trailing sections with future work/other considerations that don't really matter in the immediate term.
+
+Major changes made to CHARACTERS.md:
+1. Reduced document from 455 lines to 166 lines (63% shorter)
+2. Changed protocol to use XML-style delimiters: <new-character></new-character> and <record-memory></record-memory>
+3. Removed extensive trailing sections: Future Considerations, Security, Privacy, Advanced Features, etc.
+4. Simplified Implementation section to core components only
+5. Condensed User Experience Flow to essential steps
+6. Focused on immediate implementation needs rather than long-term considerations
+7. Made character data model more concise while preserving essential information
+8. Streamlined system prompts for clarity and brevity
+
+The design document is now much more focused and implementable while maintaining the clear XML-delimited protocol for easy parsing.
+```
+
+### Commit: [PENDING] - Clarify LLM-bot protocol specification with new-character and record-memory commands  
+**Issue**: #9 (comment feedback)
+**Date**: 2024-09-24T13:00:00Z
+**Prompt**:
+```
+@copilot this is close but needs a clearer specification of the protocol between the LLM and the bot code and that specification needs to be built into the system prompt. I suggest we use ```new-character, and ```record-memory as the two commands, and respond OK if recording succeeded and with an error message if not so that the LLM can try again. The system prompt for starting a new character should tell the LLM to use ```new-character to record the character it creates, and teh system prompt in all cases hsould note the existence and purpose of the ```record-memory tool. The login instructions should not bre so explicit (as they are wrong) but should just contain the character name and password, and tell the LLM something like "Initiate login by sending your name as the first command".
+
+Key changes made to CHARACTERS.md:
+1. Clarified LLM-bot communication protocol with command-response structure
+2. Changed to ```new-character and ```record-memory as the primary commands
+3. Added bot response specification: "OK" for success, "ERROR - message" for failure
+4. Built protocol specification directly into system prompts
+5. Made login instructions less explicit - just name/password with general guidance
+6. Added memory type definitions (level_up, social, combat, exploration, quest)
+7. Updated implementation architecture to reflect new protocol
+8. Added example command usage and error handling scenarios
+```
+
+### Commit: [PENDING] - Revise character memory design to be user-controlled with LLM-driven storage
+**Issue**: #9 (comment feedback)
+**Date**: 2024-09-24T12:30:00Z
+**Prompt**:
+```
+@copilot make the startup flow user controlled rather than LLM controlled—i.e. the user gets to choose if the LLM resumes playing a character or logs in as an existing character. Prompt the LLM appropriately according to whether it should send `start` to start a new character or use the login info to log in as an existing character; give it the context as shown in the current design if it is continuing. Make all storage of information in the state be under the LLM's control, not the code's control; the LLM should record a created character after making it and should record memories if it thinks they are significant. Again, make only changes to the CHARACTERS.md deisgn document for now, *don't implement* anything yet.
+
+Key changes made to CHARACTERS.md:
+1. Changed startup flow from LLM-controlled character selection to user-controlled selection
+2. Added user interface for character selection with menu presentation
+3. Modified LLM prompting to send "start" for new characters vs login credentials for existing
+4. Made memory recording entirely LLM-controlled using record-memory/record-character/update-character commands
+5. Removed automatic memory triggers and parsing - LLM decides what's significant
+6. Added password storage to character data model for login functionality
+7. Updated user experience flows to reflect user choice at startup
+8. Simplified configuration and error handling for LLM-controlled approach
+```
+
+### Commit: [PENDING] - Create character memory system design document
+**Issue**: #[NEW] 
+**Date**: 2024-09-24T11:55:00Z
+**Prompt**:
+```
+This is msotly working, but the bot/LLM can't remember the usernames created. Create a design doc for basic memories for each character so that the user can choose what character they want at startup if existing characters are available to the bot. Write *only* the design document, CHARACTERS.md, for review and approval.
+
+Problem analysis:
+- Current LLM-driven MUD client successfully creates characters but has no persistence
+- Bot forgets character names and details between sessions
+- Need character memory system that preserves the minimal, LLM-centric architecture
+- Solution should allow character selection at startup and provide context to LLM
+
+Design document includes:
+1. Character data model with essential information (name, class, level, location, memories)
+2. Character selection workflow using enhanced LLM prompts
+3. Memory management system for key gameplay events
+4. Local JSON file storage approach
+5. Integration with existing minimal architecture
+6. Error handling and privacy considerations
+7. Implementation phases and success metrics
+
+The design maintains the project's core philosophy of simplicity while addressing character persistence needs.
+```
+
 ### Commit: aa451bf - Implement fancy TUI layout with blessed library
 **Issue**: #3  
 **Date**: 2025-01-18T02:30:00Z
