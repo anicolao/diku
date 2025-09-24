@@ -53,12 +53,12 @@ class TUI {
     });
     this.screen.append(this.backgroundElement);
 
-    // Main MUD interaction panel (dark mode)
+    // Main MUD interaction panel - now takes top 60% of left column
     this.mudPanel = blessed.box({
       top: 0,
       left: 0,
       width: '70%',
-      height: '80%',
+      height: '60%',
       content: 'Connecting to MUD...',
       tags: true,
       border: {
@@ -86,7 +86,40 @@ class TUI {
       }
     });
 
-    // Status panel for LLM plans and decisions
+    // Debug panel - now underneath main panel in left column (40% of left column)
+    this.debugPanel = blessed.box({
+      top: '60%',
+      left: 0,
+      width: '70%',
+      height: '40%',
+      content: 'Debug: Ready',
+      tags: true,
+      border: {
+        type: 'line'
+      },
+      style: {
+        fg: 'bright-white',
+        bg: 'blue',
+        border: {
+          bg: 'blue'
+        },
+        label: {
+          fg: 'bright-white',
+          bg: 'blue'
+        }
+      },
+      scrollable: true,
+      alwaysScroll: true,
+      scrollbar: {
+        ch: ' ',
+        style: {
+          bg: 'blue'
+        }
+      },
+      label: ' Debug Messages '
+    });
+
+    // Status panel - now takes top 60% of right column
     this.statusPanel = blessed.box({
       top: 0,
       left: '70%',
@@ -119,13 +152,13 @@ class TUI {
       label: ' LLM Status & Plans '
     });
 
-    // Debug panel for technical messages
-    this.debugPanel = blessed.box({
+    // Input/approval area - now takes bottom 40% of right column
+    this.inputBox = blessed.box({
       top: '60%',
       left: '70%',
       width: '30%',
-      height: '20%',
-      content: 'Debug: Ready',
+      height: '40%',
+      content: 'Press Ctrl+C to quit. Waiting for MUD connection...',
       tags: true,
       border: {
         type: 'line'
@@ -149,31 +182,6 @@ class TUI {
           bg: 'blue'
         }
       },
-      label: ' Debug Messages '
-    });
-
-    // Input/approval area
-    this.inputBox = blessed.box({
-      top: '80%',
-      left: 0,
-      width: '100%',
-      height: '20%',
-      content: 'Press Ctrl+C to quit. Waiting for MUD connection...',
-      tags: true,
-      border: {
-        type: 'line'
-      },
-      style: {
-        fg: 'bright-white',
-        bg: 'blue',
-        border: {
-          bg: 'blue'
-        },
-        label: {
-          fg: 'bright-white',
-          bg: 'blue'
-        }
-      },
       label: ' User Input / Approval '
     });
 
@@ -192,7 +200,11 @@ class TUI {
     this.screen.key(['enter'], () => {
       if (this.waitingForApproval && this.approvalCallback) {
         this.waitingForApproval = false;
-        this.inputBox.setContent('Command approved. Processing...');
+        // Append processing message with timestamp (consistent with updateInputStatus)
+        const timestamp = new Date().toLocaleTimeString();
+        const currentContent = this.inputBox.getContent();
+        this.inputBox.setContent(currentContent + `{bold}[${timestamp}]{/bold} Command approved. Processing...\n`);
+        this.inputBox.scrollTo(this.inputBox.getScrollHeight());
         this.screen.render();
         this.approvalCallback();
         this.approvalCallback = null;
@@ -281,9 +293,31 @@ class TUI {
       this.waitingForApproval = true;
       this.approvalCallback = resolve;
       
-      this.inputBox.setContent(`${message}\n\n{bold}{yellow-fg}Press ENTER to approve, or Ctrl+C to quit{/yellow-fg}{/bold}`);
+      // Append approval prompt with clear visual separator (consistent with other methods)
+      const timestamp = new Date().toLocaleTimeString();
+      const currentContent = this.inputBox.getContent();
+      const separator = '\n' + '━'.repeat(35) + '\n';
+      const promptContent = `${separator}{bold}[${timestamp}] APPROVAL REQUIRED{/bold}\n${message}\n\n{bold}{yellow-fg}Press ENTER to approve, or Ctrl+C to quit{/yellow-fg}{/bold}\n`;
+      this.inputBox.setContent(currentContent + promptContent);
+      this.inputBox.scrollTo(this.inputBox.getScrollHeight());
       this.screen.render();
     });
+  }
+
+  /**
+   * Clear the input box content properly
+   */
+  clearInputBox() {
+    if (!this.inputBox) return;
+    
+    // Multiple approaches to ensure clearing works with blessed.js
+    this.inputBox.setContent('');
+    this.inputBox.setScrollPerc(0);
+    // Force a repaint by temporarily hiding and showing
+    this.inputBox.hide();
+    this.screen.render();
+    this.inputBox.show();
+    this.screen.render();
   }
 
   /**
@@ -292,7 +326,12 @@ class TUI {
   updateInputStatus(message) {
     if (!this.inputBox) return;
     
-    this.inputBox.setContent(message);
+    // Append to existing content with timestamp and separator for better readability
+    const timestamp = new Date().toLocaleTimeString();
+    const newContent = `{bold}[${timestamp}]{/bold} ${message}\n`;
+    const currentContent = this.inputBox.getContent();
+    this.inputBox.setContent(currentContent + newContent);
+    this.inputBox.scrollTo(this.inputBox.getScrollHeight());
     this.screen.render();
   }
 

@@ -155,7 +155,7 @@ You can send text commands over the telnet connection and receive output from th
         this.tui.showDebug(
           `Sending to LLM with conversation history. Current history length: ${this.conversationHistory.length}`,
         );
-        this.tui.showDebug(`Latest MUD output: ${mudOutput.substring(0, 100)}...`);
+        this.tui.showDebug(`=== Latest MUD Output ===\n${mudOutput}\n=========================`);
       }
 
       const response = await this.httpClient.post('/api/chat', {
@@ -170,7 +170,7 @@ You can send text commands over the telnet connection and receive output from th
       const llmResponse = response.data.message.content;
 
       if (this.debug) {
-        this.tui.showDebug(`LLM Response: ${llmResponse.substring(0, 200)}...`);
+        this.tui.showDebug(`=== LLM Response ===\n${llmResponse}\n====================`);
       }
 
       // Add LLM response to conversation history
@@ -194,7 +194,7 @@ You can send text commands over the telnet connection and receive output from th
       } else {
         this.tui.showLLMStatus({ error: 'No valid command found in LLM response' });
         if (this.debug) {
-          this.tui.showDebug(`LLM Response: ${llmResponse}`);
+          this.tui.showDebug(`=== Full LLM Response (No Command Found) ===\n${llmResponse}\n============================================`);
         }
       }
     } catch (error) {
