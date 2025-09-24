@@ -15,6 +15,8 @@ This project tests whether modern Large Language Models can successfully navigat
 - **Minimal Processing**: No parsing, state management, or game logic in the client
 - **User Approval**: Manual confirmation before each command is sent to the MUD
 - **Dark Mode Interface**: Easy-to-read green-on-black terminal display
+- **Character Strategy**: Intelligent character creation and development based on CHARACTER.md design
+- **State Tracking**: Monitors character progression, level, and social interactions
 - **Experimental Design**: Tests pure LLM capability for MUD gameplay
 
 ## User Interface
@@ -155,6 +157,7 @@ The experiment is successful if the LLM can:
 ## Documentation
 
 - [Initial Design Document](INITIAL_DESIGN.md) - Simplified architecture and implementation plan
+- [Character Design](CHARACTER.md) - Comprehensive character creation and development strategy
 - [Prompt Tracking](PROMPTS.md) - Complete record of all development prompts
 
 ## Contributing

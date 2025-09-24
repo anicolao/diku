@@ -164,6 +164,53 @@ look
       client = new MudClient(mockConfig, { debug: true });
       expect(client.debug).toBe(true);
     });
+
+    test('should track character state (CHARACTER.md design)', () => {
+      client = new MudClient(mockConfig);
+      
+      // Test initial character state
+      expect(client.characterState.phase).toBe('creation');
+      expect(client.characterState.level).toBe(null);
+      expect(client.characterState.name).toBe(null);
+      expect(client.characterState.deathCount).toBe(0);
+      
+      // Test character name detection
+      const welcomeOutput = 'Welcome back Testchar to Arctic MUD!';
+      client.updateCharacterState(welcomeOutput);
+      expect(client.characterState.name).toBe('Testchar');
+      
+      // Test level detection and phase progression
+      const levelOutput = 'You are level 3 Fighter with 45 hit points.';
+      client.updateCharacterState(levelOutput);
+      expect(client.characterState.level).toBe(3);
+      expect(client.characterState.phase).toBe('foundation');
+      
+      // Test growth phase
+      const growthOutput = 'You are level 5 with incredible power!';
+      client.updateCharacterState(growthOutput);
+      expect(client.characterState.level).toBe(5);
+      expect(client.characterState.phase).toBe('growth');
+      
+      // Test death tracking
+      const deathOutput = 'You are DEAD! You feel your soul slipping away...';
+      client.updateCharacterState(deathOutput);
+      expect(client.characterState.deathCount).toBe(1);
+    });
+
+    test('should provide character context', () => {
+      client = new MudClient(mockConfig);
+      client.characterState.name = 'TestHero';
+      client.characterState.level = 4;
+      client.characterState.race = 'Human';
+      client.characterState.class = 'Warrior';
+      client.characterState.phase = 'growth';
+      
+      const context = client.getCharacterContext();
+      expect(context).toContain('TestHero');
+      expect(context).toContain('Level 4');
+      expect(context).toContain('Human Warrior');
+      expect(context).toContain('Phase: growth');
+    });
   });
 
   describe('Configuration', () => {

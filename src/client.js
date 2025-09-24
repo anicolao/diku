@@ -17,6 +17,21 @@ class MudClient {
     this.isConnected = false;
     this.messageHistory = [];
 
+    // Character state tracking (from CHARACTER.md design)
+    this.characterState = {
+      name: null,
+      class: null,
+      race: null,
+      level: null,
+      phase: 'creation', // creation, foundation, growth, mastery
+      lastKnownHP: null,
+      lastKnownMana: null,
+      currentArea: null,
+      socialConnections: [],
+      deathCount: 0,
+      sessionStart: Date.now()
+    };
+
     // Initialize TUI
     this.tui = new TUI();
 
@@ -26,6 +41,13 @@ class MudClient {
 
     // System prompt for the LLM
     this.systemPrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
+
+**Character Strategy**
+- **Race Priority**: Human (balanced), Elf (magic), Dwarf (combat) - choose based on available options
+- **Class Priority**: Warrior (survivable), Cleric (social/useful), Mage (powerful), Thief (utility)
+- **Stat Focus**: Prioritize primary class stat, then Constitution for survivability
+- **Social Approach**: Be helpful, respectful, and reliable to build positive reputation
+- **Progression**: Focus on efficient XP gain while maintaining safety and social connections
 
 **Environment**
 You can send text commands over the telnet connection and receive output from the server.
@@ -126,6 +148,9 @@ You can send text commands over the telnet connection and receive output from th
     // Show MUD output in the TUI main panel
     this.tui.showMudOutput(output);
 
+    // Update character state based on MUD output (CHARACTER.md design)
+    this.updateCharacterState(output);
+
     // Store the output for context
     this.messageHistory.push({
       type: 'mud_output',
@@ -142,10 +167,14 @@ You can send text commands over the telnet connection and receive output from th
    */
   async sendToLLM(mudOutput) {
     try {
+      // Add character context to MUD output (CHARACTER.md design)
+      const characterContext = this.getCharacterContext();
+      const contextualOutput = `${characterContext}\n\n${mudOutput}`;
+      
       // Add MUD output to conversation history
       this.conversationHistory.push({
         role: 'tool',
-        content: `${mudOutput}`,
+        content: contextualOutput,
       });
 
       // Truncate history if too long, but always keep system prompt first
@@ -156,6 +185,7 @@ You can send text commands over the telnet connection and receive output from th
           `Sending to LLM with conversation history. Current history length: ${this.conversationHistory.length}`,
         );
         this.tui.showDebug(`=== Latest MUD Output ===\n${mudOutput}\n=========================`);
+        this.tui.showDebug(`Character Context: ${characterContext}`);
       }
 
       const response = await this.httpClient.post('/api/chat', {
@@ -339,6 +369,81 @@ You can send text commands over the telnet connection and receive output from th
     } catch (error) {
       this.tui.showDebug(`Error sending command to MUD: ${error.message}`);
     }
+  }
+
+  /**
+   * Update character state based on MUD output (implements CHARACTER.md design)
+   */
+  updateCharacterState(mudOutput) {
+    // Track character creation completion
+    if (mudOutput.includes('Welcome to Arctic MUD') && mudOutput.includes('Your character:')) {
+      this.characterState.phase = 'foundation';
+    }
+
+    // Track level progression
+    const levelMatch = mudOutput.match(/You are level (\d+)/i);
+    if (levelMatch) {
+      const newLevel = parseInt(levelMatch[1]);
+      if (newLevel !== this.characterState.level) {
+        this.characterState.level = newLevel;
+        // Update phase based on level (from CHARACTER.md)
+        if (newLevel >= 1 && newLevel <= 3) {
+          this.characterState.phase = 'foundation';
+        } else if (newLevel >= 4 && newLevel <= 6) {
+          this.characterState.phase = 'growth';
+        } else if (newLevel >= 7) {
+          this.characterState.phase = 'mastery';
+        }
+      }
+    }
+
+    // Track character name
+    if (!this.characterState.name) {
+      const nameMatch = mudOutput.match(/Your name is (\w+)/i) || mudOutput.match(/Welcome back (\w+)/i);
+      if (nameMatch) {
+        this.characterState.name = nameMatch[1];
+      }
+    }
+
+    // Track character death
+    if (mudOutput.includes('You are DEAD!') || mudOutput.includes('You have died')) {
+      this.characterState.deathCount++;
+    }
+
+    // Track HP/Mana if visible
+    const hpMatch = mudOutput.match(/HP:(\d+)/i);
+    if (hpMatch) {
+      this.characterState.lastKnownHP = parseInt(hpMatch[1]);
+    }
+    
+    const manaMatch = mudOutput.match(/Mana:(\d+)/i) || mudOutput.match(/SP:(\d+)/i);
+    if (manaMatch) {
+      this.characterState.lastKnownMana = parseInt(manaMatch[1]);
+    }
+  }
+
+  /**
+   * Get character context for LLM (implements CHARACTER.md design)
+   */
+  getCharacterContext() {
+    const sessionDuration = Math.floor((Date.now() - this.characterState.sessionStart) / 1000 / 60);
+    
+    let context = '**Character Status**: ';
+    if (this.characterState.name) {
+      context += `${this.characterState.name} `;
+    }
+    if (this.characterState.level !== null) {
+      context += `(Level ${this.characterState.level}) `;
+    }
+    if (this.characterState.class && this.characterState.race) {
+      context += `${this.characterState.race} ${this.characterState.class} `;
+    }
+    context += `- Phase: ${this.characterState.phase} - Session: ${sessionDuration}min`;
+    if (this.characterState.deathCount > 0) {
+      context += ` - Deaths: ${this.characterState.deathCount}`;
+    }
+    
+    return context;
   }
 
   /**
