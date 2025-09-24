@@ -3,7 +3,7 @@
  * Connects LLM directly to MUD with minimal processing
  */
 
-const { TelnetSocket } = require('telnet-client');
+const Telnet = require('telnet-client');
 const axios = require('axios');
 
 class MudClient {
@@ -62,16 +62,17 @@ You can send text commands over the telnet connection and receive output from th
    * Connect to the MUD server
    */
   async connectToMud() {
-    return new Promise((resolve, reject) => {
-      this.telnetSocket = new TelnetSocket();
+    try {
+      this.telnetSocket = new Telnet();
       
       const connectionParams = {
         host: this.config.mud.host,
         port: this.config.mud.port,
         timeout: 10000,
         negotiationMandatory: false,
-        irs: '\r\n',
-        ors: '\r\n'
+        shellPrompt: /.*/, // Match any prompt
+        pageSeparator: /--More--/,
+        debug: this.debug
       };
 
       this.telnetSocket.on('data', (data) => {
@@ -85,16 +86,15 @@ You can send text commands over the telnet connection and receive output from th
       
       this.telnetSocket.on('error', (error) => {
         console.error('MUD connection error:', error);
-        reject(error);
       });
       
-      this.telnetSocket.connect(connectionParams)
-        .then(() => {
-          this.isConnected = true;
-          resolve();
-        })
-        .catch(reject);
-    });
+      await this.telnetSocket.connect(connectionParams);
+      this.isConnected = true;
+      
+    } catch (error) {
+      console.error('Failed to connect to MUD:', error);
+      throw error;
+    }
   }
 
   /**
@@ -197,7 +197,7 @@ You can send text commands over the telnet connection and receive output from th
     try {
       console.log('SENDING TO MUD:', command);
       
-      await this.telnetSocket.write(command + '\r\n');
+      await this.telnetSocket.send(command);
       
       // Store the command for context
       this.messageHistory.push({

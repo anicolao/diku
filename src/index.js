@@ -7,7 +7,20 @@
 
 const { Command } = require('commander');
 const MudClient = require('./client');
-const config = require('../config.json');
+
+// Try to load config, with fallback
+let config;
+try {
+  config = require('../config.json');
+} catch (error) {
+  console.error('Warning: config.json not found, using config.example.json');
+  try {
+    config = require('../config.example.json');
+  } catch (error2) {
+    console.error('Error: Neither config.json nor config.example.json found');
+    process.exit(1);
+  }
+}
 
 const program = new Command();
 

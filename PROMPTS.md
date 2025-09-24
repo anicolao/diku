@@ -182,6 +182,42 @@ User feedback indicates the implementation was too complex. They want a much sim
 Need to simplify the design and remove unnecessary complexity.
 ```
 
+### Commit: [CURRENT] - Fix telnet-client import and connection issues
+**Issue**: #1  
+**Date**: 2025-01-14T18:40:00Z
+**Prompt**:
+```
+<comment_new>
+<comment_id>3326085552</comment_id>
+<author>@anicolao</author>
+This is failing with an error @copilot 
+```
+$ bun start
+$ node src/index.js
+Starting Diku MUD AI Player v0.2.0 (Simplified)
+Configuration: {
+  mudHost: 'arctic.org',
+  mudPort: 2700,
+  ollamaUrl: 'http://localhost:11434',
+  model: 'mistral'
+}
+Error starting MUD client: TypeError: TelnetSocket is not a constructor
+    at /Users/anicolao/projects/games/diku/src/client.js:66:27
+    at new Promise (```
+Please make sure the code can run before committing again.
+</comment_new>
+
+User reports the application is failing with "TelnetSocket is not a constructor" error. Need to fix the telnet-client library usage - the library exports the main class directly, not as a named export. Also need to fix config loading issues and ensure the application runs properly.
+
+Issues to fix:
+1. Incorrect import of telnet-client (should be `require('telnet-client')` not `{ TelnetSocket }`)
+2. Wrong API usage for telnet-client connection and sending commands
+3. Config loading fails if config.json doesn't exist
+4. Clean up unused imports
+
+Need to ensure the application runs without errors.
+```
+
 ---
 
 ## Rules for Prompt Tracking
