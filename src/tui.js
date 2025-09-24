@@ -23,11 +23,19 @@ class TUI {
    * Initialize the blessed screen and create UI layout
    */
   initializeScreen() {
-    // Create main screen
+    // Force color support and create main screen
     this.screen = blessed.screen({
       smartCSR: true,
-      title: 'Diku MUD AI Player'
+      title: 'Diku MUD AI Player',
+      fullUnicode: true,
+      dockBorders: true,
+      warnings: false
     });
+    
+    // Force color mode if terminal doesn't detect it properly
+    if (this.screen.tput.colors < 256) {
+      this.screen.tput.colors = 256;
+    }
 
     // Main MUD interaction panel (dark mode)
     this.mudPanel = blessed.box({
@@ -41,10 +49,10 @@ class TUI {
         type: 'line'
       },
       style: {
-        fg: 'green',
-        bg: 0, // Explicit ANSI black
+        fg: 'bright-green',
+        bg: 'black',
         border: {
-          fg: 'green'
+          fg: 'bright-green'
         }
       },
       scrollable: true,
@@ -99,10 +107,10 @@ class TUI {
         type: 'line'
       },
       style: {
-        fg: 'yellow',
-        bg: 0, // Explicit ANSI black
+        fg: 'bright-yellow',
+        bg: 'black',
         border: {
-          fg: 'yellow'
+          fg: 'bright-yellow'
         }
       },
       scrollable: true,
@@ -128,10 +136,10 @@ class TUI {
         type: 'line'
       },
       style: {
-        fg: 'white',
-        bg: 0, // Explicit ANSI black
+        fg: 'bright-white',
+        bg: 'black',
         border: {
-          fg: 'white'
+          fg: 'bright-white'
         }
       },
       label: ' User Input / Approval '
