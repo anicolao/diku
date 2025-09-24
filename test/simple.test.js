@@ -25,10 +25,50 @@ describe('Simplified Diku MUD AI Player', () => {
   });
 
   describe('MudClient', () => {
-    test('should initialize with config', () => {
+    test('should initialize with config and conversation history', () => {
       const client = new MudClient(mockConfig);
       expect(client.config).toEqual(mockConfig);
       expect(client.isConnected).toBe(false);
+      expect(client.conversationHistory).toHaveLength(1);
+      expect(client.conversationHistory[0].role).toBe('system');
+      expect(client.maxHistoryLength).toBe(10);
+    });
+
+    test('should maintain conversation history', () => {
+      const client = new MudClient(mockConfig);
+      
+      // Start with system prompt
+      expect(client.conversationHistory).toHaveLength(1);
+      
+      // Add user message
+      client.conversationHistory.push({ role: 'user', content: 'test user input' });
+      expect(client.conversationHistory).toHaveLength(2);
+      
+      // Add assistant message  
+      client.conversationHistory.push({ role: 'assistant', content: 'test assistant response' });
+      expect(client.conversationHistory).toHaveLength(3);
+    });
+
+    test('should truncate conversation history while preserving system prompt', () => {
+      const client = new MudClient(mockConfig);
+      client.maxHistoryLength = 3; // Set small limit for testing
+      
+      // Add messages beyond the limit
+      for (let i = 0; i < 5; i++) {
+        client.conversationHistory.push({ role: 'user', content: `message ${i}` });
+      }
+      
+      // Should have 6 messages total (1 system + 5 user)
+      expect(client.conversationHistory).toHaveLength(6);
+      
+      // Truncate
+      client.truncateConversationHistory();
+      
+      // Should have maxHistoryLength messages
+      expect(client.conversationHistory).toHaveLength(3);
+      expect(client.conversationHistory[0].role).toBe('system');
+      expect(client.conversationHistory[1].content).toBe('message 3');
+      expect(client.conversationHistory[2].content).toBe('message 4');
     });
 
     test('should extract commands from LLM response', () => {

@@ -16,6 +16,10 @@ class MudClient {
     this.isConnected = false;
     this.messageHistory = [];
     
+    // Conversation history for LLM context
+    this.conversationHistory = [];
+    this.maxHistoryLength = 10; // Keep last 10 interactions
+    
     // System prompt for the LLM
     this.systemPrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
 
@@ -31,6 +35,9 @@ You can send text commands over the telnet connection and receive output from th
 - Always respond with exactly one command in a \`\`\`telnet block
 - Read the MUD output carefully and respond appropriately
 - Focus on character creation, leveling, and social interaction`;
+
+    // Initialize conversation history with system prompt
+    this.conversationHistory.push({ role: 'system', content: this.systemPrompt });
 
     this.httpClient = axios.create({
       baseURL: config.ollama.baseUrl,
@@ -48,6 +55,7 @@ You can send text commands over the telnet connection and receive output from th
     try {
       await this.connectToMud();
       console.log('Connected to MUD, starting LLM interaction...');
+      console.log('💭 Conversation history initialized with system prompt');
       
       // Send initial prompt to LLM to start the game
       await this.sendToLLM('You have connected to Arctic MUD. Please start by creating a character.');
@@ -124,19 +132,23 @@ You can send text commands over the telnet connection and receive output from th
    */
   async sendToLLM(mudOutput) {
     try {
-      // Build the conversation context
-      const messages = [
-        { role: 'system', content: this.systemPrompt },
-        { role: 'user', content: `MUD Output:\n${mudOutput}\n\nWhat is your next command?` }
-      ];
+      // Add MUD output to conversation history
+      this.conversationHistory.push({ 
+        role: 'user', 
+        content: `MUD Output:\n${mudOutput}\n\nWhat is your next command?` 
+      });
+
+      // Truncate history if too long, but always keep system prompt first
+      this.truncateConversationHistory();
 
       if (this.debug) {
-        console.log('Sending to LLM:', mudOutput);
+        console.log('Sending to LLM with conversation history. Current history length:', this.conversationHistory.length);
+        console.log('Latest MUD output:', mudOutput);
       }
 
       const response = await this.httpClient.post('/api/chat', {
         model: this.config.ollama.model,
-        messages: messages,
+        messages: this.conversationHistory,
         options: {
           temperature: this.config.ollama.temperature || 0.7
         },
@@ -148,6 +160,12 @@ You can send text commands over the telnet connection and receive output from th
       if (this.debug) {
         console.log('LLM Response:', llmResponse);
       }
+
+      // Add LLM response to conversation history
+      this.conversationHistory.push({ 
+        role: 'assistant', 
+        content: llmResponse 
+      });
 
       // Parse and display LLM response
       const parsed = this.parseLLMResponse(llmResponse);
@@ -169,10 +187,40 @@ You can send text commands over the telnet connection and receive output from th
   }
 
   /**
+   * Truncate conversation history to keep recent interactions
+   * Always keeps system prompt as first message
+   */
+  truncateConversationHistory() {
+    if (this.conversationHistory.length <= this.maxHistoryLength) {
+      return;
+    }
+
+    // Keep system prompt (first message) and last N-1 messages
+    const systemPrompt = this.conversationHistory[0];
+    const recentMessages = this.conversationHistory.slice(-(this.maxHistoryLength - 1));
+    
+    this.conversationHistory = [systemPrompt, ...recentMessages];
+    
+    if (this.debug) {
+      console.log(`Truncated conversation history to ${this.conversationHistory.length} messages`);
+    }
+  }
+
+  /**
+   * Get conversation history summary for debugging
+   */
+  getConversationSummary() {
+    return this.conversationHistory.map((msg, index) => 
+      `${index + 1}. ${msg.role}: ${msg.content.substring(0, 100)}...`
+    ).join('\n');
+  }
+
+  /**
    * Parse LLM response and extract plan, reasoning, and command
    */
   parseLLMResponse(llmResponse) {
     console.log('\n=== LLM RESPONSE ===');
+    console.log(`💭 Context: ${this.conversationHistory.length} messages in conversation history`);
     
     // Extract plan if present
     const planMatch = llmResponse.match(/\*\*Plan\*\*:?\s*(.*?)(?=\n\*\*|$)/is);

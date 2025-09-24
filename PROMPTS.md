@@ -245,6 +245,56 @@ Changes needed:
 - Improve error messages and status display
 ```
 
+### Commit: [CURRENT] - Add conversation history to improve LLM decision making
+**Issue**: #1  
+**Date**: 2025-01-14T18:50:00Z
+**Prompt**:
+```
+<comment_new>
+<comment_id>3326143600</comment_id>
+<author>@anicolao</author>
+@copilot I think we're not successfully incorporating the conversation history. We need something like this but adapted for the MUD:
+```
+import { type LLMClient } from './llmClient';
+import { JailClient } from './jailClient';
+import { parseBashCommands } from './responseParser';
+import { SYSTEM_PROMPT } from './prompts';
+
+const MAX_ITERATIONS = 10;
+
+export class SWEAgent {
+  private conversationHistory: { role: string; content: string }[] = [];
+
+  constructor(
+    private readonly llmClient: LLMClient,
+    private readonly jailClient: JailClient
+  ) {
+    this.conversationHistory.push({ role: 'system', content: SYSTEM_PROMPT });
+  }
+
+  get currentJailClient(): JailClient {
+    return this.jailClient;
+  }
+
+  async run(task: string): Promise`${msg.role}: ${msg.content}`).join('\n\n');
+  }
+}
+```
+Something like this should enable the LLM to accumulate the history of what it has done and make better decisions. Let's perhaps also be willing to truncate the conversation history to the last 10 interactions, but always ensure that the system prompt is first. 
+</comment_new>
+
+User suggests implementing conversation history to help the LLM make better decisions based on previous interactions. Currently only sending system prompt + latest MUD output, missing context from previous exchanges.
+
+Need to implement:
+1. Conversation history array to track all user/assistant exchanges
+2. Include full conversation history in LLM API calls
+3. History truncation to last 10 interactions while preserving system prompt
+4. Better context awareness for LLM decision making
+5. Debug information showing conversation history length
+
+This will help the LLM understand what actions it has taken previously and make more informed decisions based on the accumulated gameplay experience.
+```
+
 ---
 
 ## Rules for Prompt Tracking
