@@ -7,8 +7,6 @@
 
 const { Command } = require('commander');
 const dotenv = require('dotenv');
-const path = require('path');
-const fs = require('fs');
 
 const MudClient = require('./client/client');
 const logger = require('./utils/logger');

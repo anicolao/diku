@@ -37,7 +37,8 @@ class OutputParser extends EventEmitter {
       cantSee: /You (can't see|don't see)/i,
       inventory: /You are carrying:/i,
       
-      // ANSI escape codes
+      // ANSI escape codes 
+      // eslint-disable-next-line no-control-regex
       ansi: /\x1b\[[0-9;]*m/g
     };
   }

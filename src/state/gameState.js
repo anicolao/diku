@@ -132,8 +132,6 @@ class GameState extends EventEmitter {
    * Update current room information
    */
   updateCurrentRoom(roomData) {
-    const oldRoom = { ...this.state.room };
-    
     if (roomData.name && roomData.name !== this.state.room.name) {
       this.state.room.name = roomData.name;
       this.state.session.roomsVisited++;
