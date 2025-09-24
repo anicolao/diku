@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime files
+logs/
+temp/
+data/
+*.log
+*.pid
+*.pid.lock
+
+# Configuration (keep examples)
+config.json
+.env
+
+# Test coverage
+coverage/
+
+# Build artifacts (if any)
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
