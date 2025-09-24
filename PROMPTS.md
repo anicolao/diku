@@ -124,7 +124,7 @@ Continuing from the same development session - adding testing infrastructure and
 The system now has a robust testing foundation and can be developed/tested without external dependencies like Ollama being available.
 ```
 
-### Commit: [CURRENT] - Add code quality tools and fix linting issues
+### Commit: 21254bf - Add code quality tools and fix linting issues
 **Issue**: #1  
 **Date**: 2025-01-14T18:22:00Z
 **Prompt**:
