@@ -212,6 +212,29 @@ look
       client = new MudClient(mockConfig, { debug: true });
       expect(client.debug).toBe(true);
     });
+
+    test('should strip ANSI escape sequences from MUD output', async () => {
+      client = new MudClient(mockConfig);
+      
+      // Mock sendToLLM to prevent actual LLM calls
+      jest.spyOn(client, 'sendToLLM').mockImplementation(async () => {});
+      
+      // Sample MUD output with ANSI escape sequences
+      const mudOutputWithAnsi = Buffer.from('\u001b[31mHello \u001b[32mworld\u001b[0m! Welcome to \u001b[1;34mArctic MUD\u001b[0m.');
+      
+      await client.handleMudOutput(mudOutputWithAnsi);
+      
+      // Check that ANSI sequences were stripped from TUI output
+      expect(client.tui.showMudOutput).toHaveBeenCalledWith('Hello world! Welcome to Arctic MUD.');
+      
+      // Check that ANSI sequences were stripped from message history
+      const lastMessage = client.messageHistory[client.messageHistory.length - 1];
+      expect(lastMessage.content).toBe('Hello world! Welcome to Arctic MUD.');
+      expect(lastMessage.type).toBe('mud_output');
+      
+      // Check that ANSI sequences were stripped from LLM input
+      expect(client.sendToLLM).toHaveBeenCalledWith('Hello world! Welcome to Arctic MUD.');
+    });
   });
 
   describe('Configuration', () => {
