@@ -4,6 +4,8 @@
  */
 
 const blessed = require('blessed');
+const fs = require('fs');
+const path = require('path');
 
 class TUI {
   constructor() {
@@ -16,7 +18,36 @@ class TUI {
     this.waitingForApproval = false;
     this.approvalCallback = null;
     
+    // Initialize logging
+    this.initializeLogging();
     this.initializeScreen();
+  }
+
+  /**
+   * Initialize logging directories and files
+   */
+  initializeLogging() {
+    const logsDir = path.join(__dirname, '..', 'logs');
+    
+    // Ensure logs directory exists
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    
+    // Initialize log file paths
+    this.logFiles = {
+      mud: path.join(logsDir, 'mud.log'),
+      status: path.join(logsDir, 'status.log'),
+      debug: path.join(logsDir, 'debug.log'),
+      input: path.join(logsDir, 'input.log')
+    };
+    
+    // Create empty log files if they don't exist
+    Object.values(this.logFiles).forEach(logFile => {
+      if (!fs.existsSync(logFile)) {
+        fs.writeFileSync(logFile, `Log started at ${new Date().toISOString()}\n`);
+      }
+    });
   }
 
   /**
@@ -78,6 +109,8 @@ class TUI {
       },
       scrollable: true,
       alwaysScroll: true,
+      mouse: true,
+      keys: true,
       scrollbar: {
         ch: ' ',
         style: {
@@ -110,6 +143,8 @@ class TUI {
       },
       scrollable: true,
       alwaysScroll: true,
+      mouse: true,
+      keys: true,
       scrollbar: {
         ch: ' ',
         style: {
@@ -143,6 +178,8 @@ class TUI {
       },
       scrollable: true,
       alwaysScroll: true,
+      mouse: true,
+      keys: true,
       scrollbar: {
         ch: ' ',
         style: {
@@ -176,6 +213,8 @@ class TUI {
       },
       scrollable: true,
       alwaysScroll: true,
+      mouse: true,
+      keys: true,
       scrollbar: {
         ch: ' ',
         style: {
@@ -200,6 +239,10 @@ class TUI {
     this.screen.key(['enter'], () => {
       if (this.waitingForApproval && this.approvalCallback) {
         this.waitingForApproval = false;
+        
+        // Log approval to file
+        this.writeToLog('input', 'Command approved. Processing...');
+        
         // Append processing message with timestamp (consistent with updateInputStatus)
         const timestamp = new Date().toLocaleTimeString();
         const currentContent = this.inputBox.getContent();
@@ -216,6 +259,22 @@ class TUI {
   }
 
   /**
+   * Write a message to a log file
+   */
+  writeToLog(logType, message) {
+    if (!this.logFiles || !this.logFiles[logType]) return;
+    
+    try {
+      const timestamp = new Date().toISOString();
+      const logEntry = `[${timestamp}] ${message}\n`;
+      fs.appendFileSync(this.logFiles[logType], logEntry);
+    } catch (error) {
+      // Silently ignore logging errors to avoid disrupting UI
+      console.error(`Failed to write to ${logType} log:`, error.message);
+    }
+  }
+
+  /**
    * Display MUD output in the main panel
    */
   showMudOutput(output) {
@@ -223,6 +282,9 @@ class TUI {
     
     const timestamp = new Date().toLocaleTimeString();
     const content = `{bold}[${timestamp}]{/bold}\n${output}\n`;
+    
+    // Log to file
+    this.writeToLog('mud', output);
     
     // Append to existing content
     const currentContent = this.mudPanel.getContent();
@@ -239,28 +301,39 @@ class TUI {
     
     const timestamp = new Date().toLocaleTimeString();
     let content = `{bold}[${timestamp}]{/bold}\n`;
+    let logContent = '';
     
     if (data.contextInfo) {
       content += `{cyan-fg}💭 ${data.contextInfo}{/cyan-fg}\n`;
+      logContent += `💭 ${data.contextInfo}\n`;
     }
     
     if (data.plan) {
       content += `{yellow-fg}📋 Plan:{/yellow-fg} ${data.plan}\n`;
+      logContent += `📋 Plan: ${data.plan}\n`;
     }
     
     if (data.nextStep) {
       content += `{green-fg}➡️  Next Step:{/green-fg} ${data.nextStep}\n`;
+      logContent += `➡️  Next Step: ${data.nextStep}\n`;
     }
     
     if (data.command) {
       content += `{white-fg}🎮 Command:{/white-fg} ${data.command}\n`;
+      logContent += `🎮 Command: ${data.command}\n`;
     }
     
     if (data.error) {
       content += `{red-fg}❌ Error:{/red-fg} ${data.error}\n`;
+      logContent += `❌ Error: ${data.error}\n`;
     }
     
     content += '\n';
+    
+    // Log to file
+    if (logContent) {
+      this.writeToLog('status', logContent.trim());
+    }
     
     // Append to existing content
     const currentContent = this.statusPanel.getContent();
@@ -278,6 +351,9 @@ class TUI {
     const timestamp = new Date().toLocaleTimeString();
     const content = `{bold}[${timestamp}]{/bold} ${message}\n`;
     
+    // Log to file
+    this.writeToLog('debug', message);
+    
     // Append to existing content  
     const currentContent = this.debugPanel.getContent();
     this.debugPanel.setContent(currentContent + content);
@@ -292,6 +368,9 @@ class TUI {
     return new Promise((resolve) => {
       this.waitingForApproval = true;
       this.approvalCallback = resolve;
+      
+      // Log to file
+      this.writeToLog('input', `APPROVAL REQUIRED: ${message}`);
       
       // Append approval prompt with clear visual separator (consistent with other methods)
       const timestamp = new Date().toLocaleTimeString();
@@ -325,6 +404,9 @@ class TUI {
    */
   updateInputStatus(message) {
     if (!this.inputBox) return;
+    
+    // Log to file
+    this.writeToLog('input', message);
     
     // Append to existing content with timestamp and separator for better readability
     const timestamp = new Date().toLocaleTimeString();
