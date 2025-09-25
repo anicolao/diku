@@ -56,12 +56,16 @@ class MudClient {
       this.llmProvider = config.llm.provider || 'ollama';
       this.llmConfig = config.llm[this.llmProvider];
     } else {
-      throw new Error('No LLM configuration found. Please configure either ollama or llm section in config.');
+      throw new Error(
+        'No LLM configuration found. Please configure either ollama or llm section in config.',
+      );
     }
 
     // Validate configuration
     if (!this.llmConfig) {
-      throw new Error(`LLM provider '${this.llmProvider}' configuration not found in config.`);
+      throw new Error(
+        `LLM provider '${this.llmProvider}' configuration not found in config.`,
+      );
     }
 
     // Setup HTTP client based on provider
@@ -90,24 +94,57 @@ class MudClient {
    * Generate system prompt based on character selection
    */
   generateSystemPrompt() {
-    const basePrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
+    const basePrompt = `
+You are an expert Diku MUD player connected to arctic diku by telnet.
+Your goal is to create a character and advance to level 10 as
+efficiently as possible, while making friends within the Diku
+environment. In each session, you will play for one hour before
+returning to a safe exit and disconnecting.
 
 **Environment**
-You can send text commands over the telnet connection and receive output from the server. In a text adventure game,
-the commands are typically just one or two words, such as "look", "north", "get sword", "attack orc", "say hello", etc. Don't
-generate long sentences or paragraphs. Keep your commands concise and to the point, including when interacting with NPCs. Use
-"help" to learn general commands, or "look NPC" to learn how to interact with an NPC. Each NPC has their own set of commands.
+
+You can send commands and receive results from the game.  In a text
+adventure game, the commands are typically just one or two words,
+such as "look", "north", "get sword", "attack orc", "say hello",
+etc. Keep your commands concise and to the point, including when
+interacting with NPCs. Use "help" to learn general commands, or
+"look NPC" to learn how to interact with an NPC. Each NPC has their
+own set of commands.
+
+**CRITICAL: Command Structure**
+This is a KEYWORD-DRIVEN text adventure, NOT a natural language
+processor. Commands must use specific keywords found in room/item/NPC
+descriptions, or in the game help for global commands. **Read the Help**.
+
+**CORRECT command patterns:**
+- "look" (examine surroundings)
+- "north" or "n" (movement)
+- "get sword" (action + target)
+- "attack orc" (action + target) 
+- "ask girl guide" (action + NPC + topic keyword)
+- "say hello" (action + message)
+- "give sword girl" (action + item + target)
+
+**WRONG (these will fail):**
+- "ask girl for guide" (contains unnecessary words like "for")
+- "tell the girl about the guide" (too many unnecessary words)
+- "could you help me with directions" (natural language sentences)
+- "please give me the sword" (politeness words don't work)
+
+**Environment**
+Commands are parsed as: ACTION [TARGET] [OBJECT/TOPIC]. Keywords
+available depend on what's in the current room (items, NPCs, exits).
+Look for keywords hidden in descriptions - they often appear as
+nouns or verbs in the text.
 
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
-2. **Command**: Send a <command>your command</command> block which contains **one line of text** to be transmitted to the server
+2. **Command**: Send a <command>your command</command> block which contains **one command** to be transmitted to the server
 
 **Rules**
-- Your first response must contain a <command> block with your first command
-- Always respond with exactly one command in a <command> block  
 - Use <plan> blocks to show your planning
+- Always respond with exactly one command in a <command> block  
 - Read the MUD output carefully and respond appropriately
-- Focus on character creation, leveling, and social interaction
 - **Use anicolao@gmail.com if asked for an email address**
 - **Always** include a <command> block
 - **When interacting with NPCs**: Start by using a 'look NPC' command to learn their available commands
@@ -135,7 +172,7 @@ ${characterContext.memories}
 
 Login: Send your character name *by itself* as the first command, followed by your password *by itself* as the second command.
 
-Record experiences:
+Record *important* experiences:
 <record-memory>
 {
   "summary": "Brief description",
@@ -159,7 +196,7 @@ First Command: Send <command>
 start
 </command>
 
-After creating your character, record it:
+**Important**: After creating your character, record it:
 <new-character>
 {
   "name": "YourCharacterName",
@@ -171,7 +208,7 @@ After creating your character, record it:
 }
 </new-character>
 
-Record significant experiences:
+You may record significant experiences:
 <record-memory>
 {
   "summary": "Brief description",
@@ -296,12 +333,12 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       if (this.llmProvider === 'openai') {
         // OpenAI API format - transform messages for OpenAI compatibility
-        const openaiMessages = this.conversationHistory.map(msg => {
+        const openaiMessages = this.conversationHistory.map((msg) => {
           // OpenAI doesn't support 'tool' role, map it to 'user'
           if (msg.role === 'tool') {
             return {
               role: 'user',
-              content: msg.content
+              content: msg.content,
             };
           }
           return msg;
