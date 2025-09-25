@@ -295,13 +295,31 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       let llmResponse;
 
       if (this.llmProvider === 'openai') {
-        // OpenAI API format
+        // OpenAI API format - transform messages for OpenAI compatibility
+        const openaiMessages = this.conversationHistory.map(msg => {
+          // OpenAI doesn't support 'tool' role, map it to 'user'
+          if (msg.role === 'tool') {
+            return {
+              role: 'user',
+              content: msg.content
+            };
+          }
+          return msg;
+        });
+
         response = await this.httpClient.post('/chat/completions', {
           model: this.llmConfig.model,
-          messages: this.conversationHistory,
+          messages: openaiMessages,
           temperature: this.llmConfig.temperature || 0.7,
           stream: false,
         });
+
+        if (this.debug) {
+          this.tui.showDebug(
+            `OpenAI API request sent with ${openaiMessages.length} messages`,
+          );
+        }
+
         llmResponse = response.data.choices[0].message.content;
       } else {
         // Ollama API format (default)
@@ -386,8 +404,26 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         }
       }
     } catch (error) {
+      // Enhanced error logging for API debugging
+      let errorMessage = error.message;
+      if (error.response) {
+        // API returned an error response
+        errorMessage = `${error.response.status} ${error.response.statusText}`;
+        if (error.response.data) {
+          if (this.debug) {
+            this.tui.showDebug(
+              `=== API Error Details ===\n${JSON.stringify(error.response.data, null, 2)}\n========================`,
+            );
+          }
+          // Try to extract a more specific error message
+          if (error.response.data.error && error.response.data.error.message) {
+            errorMessage += `: ${error.response.data.error.message}`;
+          }
+        }
+      }
+
       this.tui.showLLMStatus({
-        error: `Error communicating with LLM: ${error.message}`,
+        error: `Error communicating with LLM (${this.llmProvider}): ${errorMessage}`,
       });
 
       // Simple fallback - send 'look' command

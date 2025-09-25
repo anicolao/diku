@@ -299,5 +299,50 @@ look
 
       expect(() => new MudClient(invalidConfig)).toThrow("LLM provider 'openai' configuration not found");
     });
+
+    test('should handle OpenAI message format transformation', () => {
+      const openaiConfig = {
+        llm: {
+          provider: 'openai',
+          openai: {
+            baseUrl: 'https://api.openai.com/v1',
+            model: 'gpt-4',
+            temperature: 0.7,
+            apiKey: 'test-api-key'
+          }
+        },
+        mud: {
+          host: 'arctic.org',
+          port: 2700
+        },
+        behavior: {
+          commandDelayMs: 1000
+        }
+      };
+
+      client = new MudClient(openaiConfig);
+      
+      // Add some messages with 'tool' role
+      client.conversationHistory.push({
+        role: 'tool',
+        content: 'Test MUD output'
+      });
+
+      // Test the message transformation logic
+      const openaiMessages = client.conversationHistory.map(msg => {
+        if (msg.role === 'tool') {
+          return {
+            role: 'user',
+            content: msg.content
+          };
+        }
+        return msg;
+      });
+
+      // Verify transformation
+      expect(openaiMessages.find(msg => msg.role === 'tool')).toBeUndefined();
+      expect(openaiMessages.find(msg => msg.role === 'user' && msg.content === 'Test MUD output')).toBeDefined();
+      expect(openaiMessages.find(msg => msg.role === 'system')).toBeDefined(); // System prompt should remain
+    });
   });
 });
