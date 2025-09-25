@@ -242,7 +242,7 @@ look
       const config = require('../config.example.json');
       expect(config.llm.ollama.baseUrl).toBe('http://localhost:11434');
       expect(config.llm.openai.baseUrl).toBe('https://api.openai.com/v1');
-      expect(config.mud.host).toBe('arctic.org');
+      expect(config.mud.host).toBe('mud.arctic.org');
       expect(config.mud.port).toBe(2700);
     });
 

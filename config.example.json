@@ -14,7 +14,7 @@
     }
   },
   "mud": {
-    "host": "arctic.org",
+    "host": "mud.arctic.org",
     "port": 2700
   },
   "behavior": {

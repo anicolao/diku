@@ -3,7 +3,7 @@
  * Connects LLM directly to MUD with minimal processing
  */
 
-const Telnet = require('telnet-client');
+const net = require('net');
 const axios = require('axios');
 const stripAnsi = require('strip-ansi');
 const TUI = require('./tui');
@@ -15,7 +15,7 @@ class MudClient {
     this.options = options;
     this.debug = options.debug || false;
 
-    this.telnetSocket = null;
+    this.socket = null;
     this.isConnected = false;
     this.initialDataReceived = false;
     this.messageHistory = [];
@@ -259,57 +259,55 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   }
 
   /**
-   * Connect to the MUD server
+   * Connect to the MUD server using raw socket
    */
   async connectToMud() {
-    try {
-      this.telnetSocket = new Telnet();
-      this.initialDataReceived = false;
-
-      const connectionParams = {
-        host: this.config.mud.host,
-        port: this.config.mud.port,
-        timeout: 15000, // Longer timeout for MUD connection
-        negotiationMandatory: false, // Critical: don't wait for shell prompts
-        shellPrompt: '', // Empty prompt to avoid parsing
-        loginPrompt: '', // Empty to avoid login detection
-        passwordPrompt: '', // Empty to avoid password detection
-        debug: this.debug,
-      };
-
-      // Set up event handlers before connecting
-      this.telnetSocket.on('data', (data) => {
-        this.handleMudOutput(data);
-      });
-
-      this.telnetSocket.on('ready', (prompt) => {
-        this.tui.showDebug(`Telnet ready: ${prompt ? JSON.stringify(prompt.toString()) : 'no prompt'}`);
-      });
-
-      this.telnetSocket.on('connect', () => {
-        this.tui.showDebug('Raw socket connected to MUD server');
-      });
-
-      this.telnetSocket.on('close', () => {
-        this.tui.showDebug('MUD connection closed');
-        this.isConnected = false;
-      });
-
-      this.telnetSocket.on('error', (error) => {
-        this.tui.showDebug(`MUD connection error: ${error.message}`);
-      });
-
-      // Connect with minimal negotiation
-      await this.telnetSocket.connect(connectionParams);
-      this.isConnected = true;
-      
-      this.tui.updateInputStatus('Connected to MUD. Waiting for login banner...');
-      this.tui.showDebug('MUD connection established successfully');
-      
-    } catch (error) {
-      this.tui.showDebug(`Failed to connect to MUD: ${error.message}`);
-      throw error;
-    }
+    return new Promise((resolve, reject) => {
+      try {
+        this.initialDataReceived = false;
+        
+        // Create raw TCP socket connection
+        this.socket = new net.Socket();
+        this.socket.setTimeout(15000); // 15 second timeout
+        
+        // Set up event handlers before connecting
+        this.socket.on('data', (data) => {
+          this.handleMudOutput(data);
+        });
+        
+        this.socket.on('connect', () => {
+          this.tui.showDebug('Raw socket connected to MUD server');
+          this.isConnected = true;
+          this.tui.updateInputStatus('Connected to MUD. Waiting for login banner...');
+          resolve();
+        });
+        
+        this.socket.on('close', () => {
+          this.tui.showDebug('MUD connection closed');
+          this.isConnected = false;
+        });
+        
+        this.socket.on('error', (error) => {
+          this.tui.showDebug(`MUD connection error: ${error.message}`);
+          this.isConnected = false;
+          reject(error);
+        });
+        
+        this.socket.on('timeout', () => {
+          this.tui.showDebug('MUD connection timeout');
+          this.socket.destroy();
+          reject(new Error('Connection timeout'));
+        });
+        
+        // Connect to the MUD server
+        this.tui.showDebug(`Connecting to ${this.config.mud.host}:${this.config.mud.port}...`);
+        this.socket.connect(this.config.mud.port, this.config.mud.host);
+        
+      } catch (error) {
+        this.tui.showDebug(`Failed to connect to MUD: ${error.message}`);
+        reject(error);
+      }
+    });
   }
 
   /**
@@ -677,7 +675,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Send command to MUD
    */
   async sendToMud(command) {
-    if (!this.isConnected || !this.telnetSocket) {
+    if (!this.isConnected || !this.socket) {
       this.tui.showDebug('Cannot send command: not connected to MUD');
       return;
     }
@@ -685,7 +683,8 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     try {
       this.tui.showDebug(`🚀 SENDING TO MUD: ${command}`);
 
-      await this.telnetSocket.send(command);
+      // Send command with newline (MUDs expect commands to end with newline)
+      this.socket.write(command + '\n');
 
       // Store the command for context
       this.messageHistory.push({
@@ -708,9 +707,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Disconnect from MUD
    */
   async disconnect() {
-    if (this.telnetSocket && this.isConnected) {
+    if (this.socket && this.isConnected) {
       try {
-        await this.telnetSocket.end();
+        this.socket.end();
       } catch (error) {
         this.tui.showDebug(`Error disconnecting from MUD: ${error.message}`);
       }
