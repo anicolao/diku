@@ -51,7 +51,7 @@ describe('Simplified Diku MUD AI Player', () => {
       expect(client.isConnected).toBe(false);
       expect(client.conversationHistory).toHaveLength(1);
       expect(client.conversationHistory[0].role).toBe('system');
-      expect(client.maxHistoryLength).toBe(10);
+      expect(client.maxTokens).toBe(100000);
       expect(client.tui).toBeDefined();
     });
 
@@ -72,37 +72,46 @@ describe('Simplified Diku MUD AI Player', () => {
 
     test('should truncate conversation history based on token count while preserving system prompt', () => {
       client = new MudClient(mockConfig);
-      client.maxTokens = 1000; // Set small token limit for testing
+      client.maxTokens = 600; // Set limit higher than system prompt but low enough to trigger truncation
       
-      // Add messages with large content to exceed token limit
-      const largeMessage = 'a'.repeat(300); // ~75 tokens each
-      for (let i = 0; i < 10; i++) {
-        client.conversationHistory.push({ role: 'user', content: `${largeMessage}_${i}` });
+      // Add messages with many words to exceed token limit
+      const largeMessage = 'word '.repeat(50); // 50 tokens each
+      for (let i = 0; i < 3; i++) {
+        client.conversationHistory.push({ role: 'user', content: `${largeMessage} message ${i}` });
       }
       
-      // Should have 11 messages total (1 system + 10 user)
-      expect(client.conversationHistory).toHaveLength(11);
+      // Should have 4 messages total (1 system + 3 user)
+      expect(client.conversationHistory).toHaveLength(4);
       const initialTokens = client.calculateTotalTokens();
-      expect(initialTokens).toBeGreaterThan(1000);
+      expect(initialTokens).toBeGreaterThan(600);
       
       // Truncate
       client.truncateConversationHistory();
       
       // Should have fewer messages and be under token limit
-      expect(client.conversationHistory.length).toBeLessThan(11);
+      expect(client.conversationHistory.length).toBeLessThan(4);
       expect(client.conversationHistory[0].role).toBe('system');
       const finalTokens = client.calculateTotalTokens();
-      expect(finalTokens).toBeLessThanOrEqual(1000);
+      expect(finalTokens).toBeLessThanOrEqual(600);
     });
 
     test('should estimate tokens correctly', () => {
       client = new MudClient(mockConfig);
       
-      // Test token estimation
+      // Test token estimation based on word count
       expect(client.estimateTokens('')).toBe(0);
-      expect(client.estimateTokens('hello')).toBe(2); // 5 chars / 4 = 1.25, rounded up to 2
-      expect(client.estimateTokens('hello world')).toBe(3); // 11 chars / 4 = 2.75, rounded up to 3
-      expect(client.estimateTokens('a'.repeat(100))).toBe(25); // 100 chars / 4 = 25
+      expect(client.estimateTokens('hello')).toBe(1); // 1 word = 1 token
+      expect(client.estimateTokens('hello world')).toBe(2); // 2 words = 2 tokens
+      expect(client.estimateTokens('a b c d e')).toBe(5); // 5 words = 5 tokens
+      expect(client.estimateTokens('  hello   world  ')).toBe(2); // 2 words (trimmed) = 2 tokens
+    });
+
+    test('should allow configurable maxTokens', () => {
+      client = new MudClient(mockConfig, { maxTokens: 2000 });
+      expect(client.maxTokens).toBe(2000);
+      
+      const clientDefault = new MudClient(mockConfig);
+      expect(clientDefault.maxTokens).toBe(100000);
     });
 
     test('should extract commands from LLM response', () => {

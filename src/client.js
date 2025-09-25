@@ -27,8 +27,7 @@ class MudClient {
 
     // Conversation history for LLM context
     this.conversationHistory = [];
-    this.maxHistoryLength = 10; // Keep last 10 interactions (fallback)
-    this.maxTokens = 100000; // Maximum token limit for context window
+    this.maxTokens = options.maxTokens || 100000; // Maximum token limit for context window
 
     // Generate system prompt based on character selection
     this.systemPrompt = this.generateSystemPrompt();
@@ -473,13 +472,13 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
   /**
    * Estimate the number of tokens in a text string
-   * Uses a rough approximation: ~4 characters per token on average
+   * Uses word count as approximation (splits on spaces)
    */
   estimateTokens(text) {
     if (!text) return 0;
-    // Rough approximation: 4 characters per token
-    // This is conservative for most LLMs which range from 3-5 chars/token
-    return Math.ceil(text.length / 4);
+    // Split on spaces and count words as token approximation
+    const words = text.trim().split(/\s+/);
+    return words.length;
   }
 
   /**
