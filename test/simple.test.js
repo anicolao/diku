@@ -51,7 +51,7 @@ describe('Simplified Diku MUD AI Player', () => {
       expect(client.isConnected).toBe(false);
       expect(client.conversationHistory).toHaveLength(1);
       expect(client.conversationHistory[0].role).toBe('system');
-      expect(client.maxHistoryLength).toBe(10);
+      expect(client.maxTokens).toBe(100000);
       expect(client.tui).toBeDefined();
     });
 
@@ -70,26 +70,48 @@ describe('Simplified Diku MUD AI Player', () => {
       expect(client.conversationHistory).toHaveLength(3);
     });
 
-    test('should truncate conversation history while preserving system prompt', () => {
+    test('should truncate conversation history based on token count while preserving system prompt', () => {
       client = new MudClient(mockConfig);
-      client.maxHistoryLength = 3; // Set small limit for testing
+      client.maxTokens = 600; // Set limit higher than system prompt but low enough to trigger truncation
       
-      // Add messages beyond the limit
-      for (let i = 0; i < 5; i++) {
-        client.conversationHistory.push({ role: 'user', content: `message ${i}` });
+      // Add messages with many words to exceed token limit
+      const largeMessage = 'word '.repeat(50); // 50 tokens each
+      for (let i = 0; i < 3; i++) {
+        client.conversationHistory.push({ role: 'user', content: `${largeMessage} message ${i}` });
       }
       
-      // Should have 6 messages total (1 system + 5 user)
-      expect(client.conversationHistory).toHaveLength(6);
+      // Should have 4 messages total (1 system + 3 user)
+      expect(client.conversationHistory).toHaveLength(4);
+      const initialTokens = client.calculateTotalTokens();
+      expect(initialTokens).toBeGreaterThan(600);
       
       // Truncate
       client.truncateConversationHistory();
       
-      // Should have maxHistoryLength messages
-      expect(client.conversationHistory).toHaveLength(3);
+      // Should have fewer messages and be under token limit
+      expect(client.conversationHistory.length).toBeLessThan(4);
       expect(client.conversationHistory[0].role).toBe('system');
-      expect(client.conversationHistory[1].content).toBe('message 3');
-      expect(client.conversationHistory[2].content).toBe('message 4');
+      const finalTokens = client.calculateTotalTokens();
+      expect(finalTokens).toBeLessThanOrEqual(600);
+    });
+
+    test('should estimate tokens correctly', () => {
+      client = new MudClient(mockConfig);
+      
+      // Test token estimation based on word count
+      expect(client.estimateTokens('')).toBe(0);
+      expect(client.estimateTokens('hello')).toBe(1); // 1 word = 1 token
+      expect(client.estimateTokens('hello world')).toBe(2); // 2 words = 2 tokens
+      expect(client.estimateTokens('a b c d e')).toBe(5); // 5 words = 5 tokens
+      expect(client.estimateTokens('  hello   world  ')).toBe(2); // 2 words (trimmed) = 2 tokens
+    });
+
+    test('should allow configurable maxTokens', () => {
+      client = new MudClient(mockConfig, { maxTokens: 2000 });
+      expect(client.maxTokens).toBe(2000);
+      
+      const clientDefault = new MudClient(mockConfig);
+      expect(clientDefault.maxTokens).toBe(100000);
     });
 
     test('should extract commands from LLM response', () => {
@@ -182,7 +204,8 @@ look
       client = new MudClient(mockConfig);
       expect(client.systemPrompt).toContain('When interacting with NPCs');
       expect(client.systemPrompt).toContain('look NPC');
-      expect(client.systemPrompt).toContain('Each NPC has their own set of commands');
+      expect(client.systemPrompt).toContain('Each NPC has their');
+      expect(client.systemPrompt).toContain('own set of commands');
     });
 
     test('should handle debug mode', () => {

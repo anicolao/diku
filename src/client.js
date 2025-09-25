@@ -27,7 +27,7 @@ class MudClient {
 
     // Conversation history for LLM context
     this.conversationHistory = [];
-    this.maxHistoryLength = 10; // Keep last 10 interactions
+    this.maxTokens = options.maxTokens || 100000; // Maximum token limit for context window
 
     // Generate system prompt based on character selection
     this.systemPrompt = this.generateSystemPrompt();
@@ -319,8 +319,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       this.truncateConversationHistory();
 
       if (this.debug) {
+        const totalTokens = this.calculateTotalTokens();
         this.tui.showDebug(
-          `Sending to LLM with conversation history. Current history length: ${this.conversationHistory.length}`,
+          `Sending to LLM: ${this.conversationHistory.length} messages, ${totalTokens} estimated tokens`,
         );
         this.tui.showDebug(
           `=== Latest MUD Output ===\n${mudOutput}\n=========================`,
@@ -470,25 +471,73 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   }
 
   /**
-   * Truncate conversation history to keep recent interactions
+   * Estimate the number of tokens in a text string
+   * Uses word count as approximation (splits on spaces)
+   */
+  estimateTokens(text) {
+    if (!text) return 0;
+    // Split on spaces and count words as token approximation
+    const words = text.trim().split(/\s+/);
+    return words.length;
+  }
+
+  /**
+   * Calculate total tokens in conversation history
+   */
+  calculateTotalTokens() {
+    return this.conversationHistory.reduce((total, message) => {
+      return total + this.estimateTokens(message.content);
+    }, 0);
+  }
+
+  /**
+   * Truncate conversation history based on token count
    * Always keeps system prompt as first message
+   * Removes oldest messages (except system prompt) until token count < maxTokens
    */
   truncateConversationHistory() {
-    if (this.conversationHistory.length <= this.maxHistoryLength) {
+    if (this.conversationHistory.length === 0) {
       return;
     }
 
-    // Keep system prompt (first message) and last N-1 messages
-    const systemPrompt = this.conversationHistory[0];
-    const recentMessages = this.conversationHistory.slice(
-      -(this.maxHistoryLength - 1),
-    );
+    const totalTokens = this.calculateTotalTokens();
+    
+    if (totalTokens <= this.maxTokens) {
+      return;
+    }
 
-    this.conversationHistory = [systemPrompt, ...recentMessages];
+    // Always preserve system prompt (first message)
+    const systemPrompt = this.conversationHistory[0];
+    let messages = this.conversationHistory.slice(1);
+    
+    // Remove oldest messages until we're under the token limit
+    while (messages.length > 0) {
+      // Calculate current total tokens with system prompt + remaining messages
+      let currentTokens = this.estimateTokens(systemPrompt.content);
+      currentTokens += messages.reduce((total, msg) => {
+        return total + this.estimateTokens(msg.content);
+      }, 0);
+      
+      // If we're under the limit (with 90% safety margin), we're done
+      if (currentTokens <= this.maxTokens * 0.9) {
+        break;
+      }
+      
+      const removedMessage = messages.shift(); // Remove oldest non-system message
+      if (this.debug) {
+        this.tui.showDebug(
+          `Removed message: ${removedMessage.role} (${this.estimateTokens(removedMessage.content)} tokens)`,
+        );
+      }
+    }
+
+    // Reconstruct conversation history
+    this.conversationHistory = [systemPrompt, ...messages];
 
     if (this.debug) {
+      const finalTokens = this.calculateTotalTokens();
       this.tui.showDebug(
-        `Truncated conversation history to ${this.conversationHistory.length} messages`,
+        `Truncated conversation history: ${this.conversationHistory.length} messages, ${finalTokens} estimated tokens`,
       );
     }
   }
