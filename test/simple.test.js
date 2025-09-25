@@ -117,21 +117,49 @@ describe('Simplified Diku MUD AI Player', () => {
     test('should extract commands from LLM response', () => {
       client = new MudClient(mockConfig);
       
-      // Test <command> block extraction (preferred format)
+      // Test <command> block extraction (only supported format)
       const response0 = 'I will create a character.\n\n<command>\nlook\n</command>';
       expect(client.extractCommand(response0)).toBe('look');
-      
-      // Test telnet code block extraction (legacy)
-      const response1 = 'I will create a character.\n\n```telnet\nlook\n```';
-      expect(client.extractCommand(response1)).toBe('look');
-
-      // Test regular code block extraction (fallback)
-      const response2 = 'Let me examine the area.\n\n```\nexamine room\n```';
-      expect(client.extractCommand(response2)).toBe('examine room');
 
       // Test no command block
       const response3 = 'I need to think about this.';
       expect(client.extractCommand(response3)).toBe(null);
+      
+      // Test code blocks are not supported (should return null)
+      const response4 = 'Let me examine the area.\n\n```\nexamine room\n```';
+      expect(client.extractCommand(response4)).toBe(null);
+    });
+
+    test('should handle literal return/enter commands', () => {
+      client = new MudClient(mockConfig);
+      
+      // Test literal "return" command
+      const response1 = 'I need to press return.\n\n<command>\nreturn\n</command>';
+      expect(client.extractCommand(response1)).toBe('\n');
+      
+      // Test literal "enter" command
+      const response2 = 'Let me press enter.\n\n<command>\nenter\n</command>';
+      expect(client.extractCommand(response2)).toBe('\n');
+      
+      // Test case insensitive "RETURN"
+      const response3 = 'I need to press RETURN.\n\n<command>\nRETURN\n</command>';
+      expect(client.extractCommand(response3)).toBe('\n');
+      
+      // Test case insensitive "ENTER"
+      const response4 = 'Let me press ENTER.\n\n<command>\nENTER\n</command>';
+      expect(client.extractCommand(response4)).toBe('\n');
+      
+      // Test that regular commands starting with "e" are not affected
+      const response9 = 'I will examine something.\n\n<command>\nexamine table\n</command>';
+      expect(client.extractCommand(response9)).toBe('examine table');
+      
+      // Test that "exit" is not treated as enter
+      const response10 = 'I will exit.\n\n<command>\nexit\n</command>';
+      expect(client.extractCommand(response10)).toBe('exit');
+      
+      // Test that single "e" is not treated as enter (no partial matches)
+      const response11 = 'I will use e command.\n\n<command>\ne\n</command>';
+      expect(client.extractCommand(response11)).toBe('e');
     });
 
     test('should reject multi-line commands', () => {

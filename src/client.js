@@ -634,22 +634,18 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Extract command from LLM response
    */
   extractCommand(llmResponse) {
-    // Look for <command> blocks (preferred format)
+    // Look for <command> blocks (only supported format)
     const commandMatch = llmResponse.match(/<command>\s*(.*?)\s*<\/command>/s);
     if (commandMatch) {
-      return commandMatch[1].trim();
-    }
-
-    // Look for ```telnet code blocks (legacy)
-    const telnetMatch = llmResponse.match(/```telnet\s*\n?(.*?)\n?```/s);
-    if (telnetMatch) {
-      return telnetMatch[1].trim();
-    }
-
-    // Look for any code block (fallback)
-    const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
-    if (codeMatch) {
-      return codeMatch[1].trim();
+      const command = commandMatch[1].trim();
+      
+      // Check for literal return/enter commands and convert to newline
+      const lowerCommand = command.toLowerCase().trim();
+      if (lowerCommand === 'return' || lowerCommand === 'enter') {
+        return '\n';
+      }
+      
+      return command;
     }
 
     // No command block found
