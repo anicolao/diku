@@ -422,7 +422,7 @@ Implementation completed:
 The changes are minimal and surgical, adding only the necessary instructions to improve NPC interaction without disrupting existing functionality.
 ```
 
-### Commit: [CURRENT] - Add MUD prompt parsing information to system prompt
+### Commit: 458f489 - Add MUD prompt parsing information to system prompt
 **Issue**: Copilot Task: in the MUD, the prompt before each command usually displays a line like this: "5...
 **Date**: 2025-01-14T22:00:00Z  
 **Prompt**:
