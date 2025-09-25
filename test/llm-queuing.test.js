@@ -47,6 +47,7 @@ describe('LLM Request Queuing', () => {
   test('should initialize with empty queue and no pending requests', () => {
     expect(client.llmRequestPending).toBe(false);
     expect(client.mudOutputQueue).toEqual([]);
+    expect(client.waitingForMudResponse).toBe(false);
   });
 
   test('should queue messages when LLM request is pending', async () => {
@@ -168,5 +169,70 @@ describe('LLM Request Queuing', () => {
     expect(sendToLLMSpy).not.toHaveBeenCalled();
 
     sendToLLMSpy.mockRestore();
+  });
+
+  test('should process queued messages after MUD response when waiting', async () => {
+    // Set up initial state - waiting for MUD response with queued messages
+    client.waitingForMudResponse = true;
+    client.mudOutputQueue = ['Queued message 1', 'Queued message 2'];
+
+    // Mock HTTP client
+    client.httpClient = {
+      post: jest.fn().mockResolvedValue({
+        data: {
+          message: {
+            content: '<command>examine</command>'
+          }
+        }
+      })
+    };
+
+    // Mock sendToMud to prevent actual MUD communication
+    const sendToMudSpy = jest.spyOn(client, 'sendToMud').mockResolvedValue();
+
+    // Simulate MUD output arriving after command was sent
+    const newOutput = 'New MUD response';
+    const mockData = {
+      toString: () => newOutput
+    };
+
+    // Verify initial state
+    expect(client.waitingForMudResponse).toBe(true);
+    expect(client.mudOutputQueue.length).toBe(2);
+
+    await client.handleMudOutput(mockData);
+
+    // Verify queue was processed with new output included
+    // waitingForMudResponse should be true again because processQueuedMessages sent a new command
+    expect(client.waitingForMudResponse).toBe(true);
+    expect(client.mudOutputQueue.length).toBe(0);
+    expect(client.httpClient.post).toHaveBeenCalledTimes(1);
+    expect(sendToMudSpy).toHaveBeenCalledTimes(1);
+
+    // Check that the conversation history contains the combined message
+    const toolMessages = client.conversationHistory.filter(msg => msg.role === 'tool');
+    const lastToolMessage = toolMessages[toolMessages.length - 1];
+    expect(lastToolMessage.content).toBe('Queued message 1\nQueued message 2\nNew MUD response');
+
+    sendToMudSpy.mockRestore();
+  });
+
+  test('should error when processQueuedMessages called with pending request', async () => {
+    // Set LLM request as pending
+    client.llmRequestPending = true;
+
+    // Ensure queue has messages
+    client.mudOutputQueue = ['Test message'];
+
+    // Mock debug output
+    const debugSpy = jest.spyOn(client.tui, 'showDebug');
+
+    await client.processQueuedMessages();
+
+    // Verify error was logged and queue was not processed
+    expect(debugSpy).toHaveBeenCalledWith('ERROR: processQueuedMessages called while LLM request is pending');
+    expect(client.mudOutputQueue.length).toBe(1); // Queue should not be cleared
+
+    debugSpy.mockRestore();
   });
 });
