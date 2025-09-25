@@ -26,6 +26,31 @@ Each entry follows this format:
 
 ## Development History
 
+### Commit: 3c70c80 - Fix LLM command generation by emphasizing keyword-driven command structure
+**Issue**: Copilot Task: LLMs keep making commands like "ask girl for gui..." 
+**Date**: 2025-01-15T02:30:00Z
+**Prompt**:
+```
+**GitHub Copilot Coding Agent Task**
+
+This issue has been assigned to GitHub Copilot for automated resolution.
+
+**Task Request:**
+we're having a problem where the LLMs keep making commands like ask girl for guide instead of ask girl guide, failing to recognize taht they aren't supposed to write full sentences but action/target/keywords. The prompt was modified by a human developer to try to make this clearer but it isn't working out. Review the system prompt and try to rewrite it to make it more likely that the LLM will generate good commands for the text adventure - it isn't a natural language processor, it's basic keyword-driven code where they keywords available in any room depend on its contents (items, mobiles, players, and the room itself) and clues to waht the keywords are will be hidden in the descriptions, sometimes more obviously and sometimes less obviously.
+
+**Implementation completed:**
+1. Completely rewrote the system prompt to emphasize keyword-driven command structure
+2. Added "CRITICAL: Command Structure" section highlighting this is KEYWORD-DRIVEN, not natural language
+3. Provided specific examples of CORRECT commands ("ask girl guide") vs WRONG commands ("ask girl for guide")  
+4. Explained command parsing as ACTION [TARGET] [OBJECT/TOPIC] with keywords from room descriptions
+5. Added explicit rule to remove filler words like "for", "to", "please", "the"
+6. Updated NPC interaction guidance to use "look NPC" first, then specific keywords only
+7. Updated failing test to match new prompt structure
+8. Validated all tests pass (20/20) and linting passes
+
+The new prompt should significantly reduce natural language command generation by making it crystal clear that only specific keywords work and providing concrete examples of what NOT to do.
+```
+
 ### Commit: [PENDING] - Simplify CHARACTERS.md and use XML-style delimiters for easier parsing
 **Issue**: #9 (comment feedback)
 **Date**: 2024-09-24T13:30:00Z
