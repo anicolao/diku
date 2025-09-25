@@ -422,6 +422,40 @@ Implementation completed:
 The changes are minimal and surgical, adding only the necessary instructions to improve NPC interaction without disrupting existing functionality.
 ```
 
+### Commit: [CURRENT] - Add MUD prompt parsing information to system prompt
+**Issue**: Copilot Task: in the MUD, the prompt before each command usually displays a line like this: "5...
+**Date**: 2025-01-14T22:00:00Z  
+**Prompt**:
+```
+**GitHub Copilot Coding Agent Task**
+
+This issue has been assigned to GitHub Copilot for automated resolution.
+
+**Task Request:**
+in the MUD, the prompt before each command usually displays a line like this: "56H 118V 1499X 0.00% 0C T:60 Exits:D" where the fields are the character's hit points (H), move points (V), experience (X), percent progress to the next level (#.##%), coins (C), Time to next tick in seconds (60 in this example), and visible exits (NSEWUD = North South East West Up Down)." Add something to the system prompt so that the LLM can understand the information contained in the game prompt.
+
+*This issue will be automatically processed by GitHub Copilot's coding agent.*
+
+Implementation completed:
+1. Added "Game Status Information" section to the system prompt in `src/client.js`
+2. Included example status line: "56H 118V 1499X 0.00% 0C T:60 Exits:D" 
+3. Added detailed explanations for all fields:
+   - H = Hit Points (health/life)
+   - V = Move Points (movement stamina) 
+   - X = Experience Points
+   - % = Progress to Next Level
+   - C = Coins (money/currency)
+   - T: = Time to Next Tick
+   - Exits: = Visible Exits with direction mappings (N=North, S=South, etc.)
+4. Created focused test to validate new prompt content is present
+5. Updated token limit test from 600 to 700 to accommodate longer system prompt
+6. Validated all tests pass (29/29)
+7. Confirmed linting passes and dry-run functionality works
+8. Updated PROMPTS.md as per project requirements
+
+The changes are minimal and surgical, adding essential game status interpretation instructions to help the LLM understand and utilize MUD prompt information for better decision making.
+```
+
 ---
 
 ## Rules for Prompt Tracking

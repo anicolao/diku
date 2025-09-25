@@ -72,7 +72,7 @@ describe('Simplified Diku MUD AI Player', () => {
 
     test('should truncate conversation history based on token count while preserving system prompt', () => {
       client = new MudClient(mockConfig);
-      client.maxTokens = 600; // Set limit higher than system prompt but low enough to trigger truncation
+      client.maxTokens = 700; // Set limit higher than system prompt but low enough to trigger truncation
       
       // Add messages with many words to exceed token limit
       const largeMessage = 'word '.repeat(50); // 50 tokens each
@@ -83,7 +83,7 @@ describe('Simplified Diku MUD AI Player', () => {
       // Should have 4 messages total (1 system + 3 user)
       expect(client.conversationHistory).toHaveLength(4);
       const initialTokens = client.calculateTotalTokens();
-      expect(initialTokens).toBeGreaterThan(600);
+      expect(initialTokens).toBeGreaterThan(700);
       
       // Truncate
       client.truncateConversationHistory();
@@ -92,7 +92,7 @@ describe('Simplified Diku MUD AI Player', () => {
       expect(client.conversationHistory.length).toBeLessThan(4);
       expect(client.conversationHistory[0].role).toBe('system');
       const finalTokens = client.calculateTotalTokens();
-      expect(finalTokens).toBeLessThanOrEqual(600);
+      expect(finalTokens).toBeLessThanOrEqual(700);
     });
 
     test('should estimate tokens correctly', () => {
@@ -206,6 +206,19 @@ look
       expect(client.systemPrompt).toContain('look NPC');
       expect(client.systemPrompt).toContain('Each NPC has their');
       expect(client.systemPrompt).toContain('own set of commands');
+    });
+
+    test('should include MUD status prompt parsing information in system prompt', () => {
+      client = new MudClient(mockConfig);
+      expect(client.systemPrompt).toContain('Game Status Information');
+      expect(client.systemPrompt).toContain('56H 118V 1499X 0.00% 0C T:60 Exits:D');
+      expect(client.systemPrompt).toContain('H** = Hit Points');
+      expect(client.systemPrompt).toContain('V** = Move Points');
+      expect(client.systemPrompt).toContain('X** = Experience Points');
+      expect(client.systemPrompt).toContain('C** = Coins');
+      expect(client.systemPrompt).toContain('T:** = Time to Next Tick');
+      expect(client.systemPrompt).toContain('Exits:** = Visible Exits');
+      expect(client.systemPrompt).toContain('N=North, S=South, E=East, W=West, U=Up, D=Down');
     });
 
     test('should handle debug mode', () => {
