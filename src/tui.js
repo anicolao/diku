@@ -3,9 +3,9 @@
  * Provides a fancy TUI layout with separate panels for MUD interaction, status, and debug
  */
 
-const blessed = require('blessed');
-const fs = require('fs');
-const path = require('path');
+const blessed = require("blessed");
+const fs = require("fs");
+const path = require("path");
 
 class TUI {
   constructor() {
@@ -14,10 +14,10 @@ class TUI {
     this.statusPanel = null;
     this.debugPanel = null;
     this.inputBox = null;
-    
+
     this.waitingForApproval = false;
     this.approvalCallback = null;
-    
+
     // Initialize logging
     this.initializeLogging();
     this.initializeScreen();
@@ -27,25 +27,28 @@ class TUI {
    * Initialize logging directories and files
    */
   initializeLogging() {
-    const logsDir = path.join(__dirname, '..', 'logs');
-    
+    const logsDir = path.join(__dirname, "..", "logs");
+
     // Ensure logs directory exists
     if (!fs.existsSync(logsDir)) {
       fs.mkdirSync(logsDir, { recursive: true });
     }
-    
+
     // Initialize log file paths
     this.logFiles = {
-      mud: path.join(logsDir, 'mud.log'),
-      status: path.join(logsDir, 'status.log'),
-      debug: path.join(logsDir, 'debug.log'),
-      input: path.join(logsDir, 'input.log')
+      mud: path.join(logsDir, "mud.log"),
+      status: path.join(logsDir, "status.log"),
+      debug: path.join(logsDir, "debug.log"),
+      input: path.join(logsDir, "input.log"),
     };
-    
+
     // Create empty log files if they don't exist
-    Object.values(this.logFiles).forEach(logFile => {
+    Object.values(this.logFiles).forEach((logFile) => {
       if (!fs.existsSync(logFile)) {
-        fs.writeFileSync(logFile, `Log started at ${new Date().toISOString()}\n`);
+        fs.writeFileSync(
+          logFile,
+          `Log started at ${new Date().toISOString()}\n`,
+        );
       }
     });
   }
@@ -57,16 +60,16 @@ class TUI {
     // Force color support and create main screen with blue background everywhere
     this.screen = blessed.screen({
       smartCSR: true,
-      title: 'Diku MUD AI Player',
+      title: "Diku MUD AI Player",
       fullUnicode: true,
       dockBorders: true,
       warnings: false,
       style: {
-        bg: 'blue',
-        fg: 'white'
-      }
+        bg: "blue",
+        fg: "white",
+      },
     });
-    
+
     // Force color mode if terminal doesn't detect it properly
     if (this.screen.tput.colors < 256) {
       this.screen.tput.colors = 256;
@@ -76,11 +79,11 @@ class TUI {
     this.backgroundElement = blessed.box({
       top: 0,
       left: 0,
-      width: '100%',
-      height: '100%',
+      width: "100%",
+      height: "100%",
       style: {
-        bg: 'blue'
-      }
+        bg: "blue",
+      },
     });
     this.screen.append(this.backgroundElement);
 
@@ -88,140 +91,140 @@ class TUI {
     this.mudPanel = blessed.box({
       top: 0,
       left: 0,
-      width: '70%',
-      height: '60%',
-      content: 'Connecting to MUD...',
+      width: "70%",
+      height: "60%",
+      content: "Connecting to MUD...",
       tags: true,
       border: {
-        type: 'line'
+        type: "line",
       },
-      label: ' MUD Interaction (Blue Mode) ',
+      label: " MUD Interaction (Blue Mode) ",
       style: {
-        fg: 'bright-white',
-        bg: 'blue',
+        fg: "bright-white",
+        bg: "blue",
         border: {
-          bg: 'blue'
+          bg: "blue",
         },
         label: {
-          fg: 'bright-white',
-          bg: 'blue'
-        }
+          fg: "bright-white",
+          bg: "blue",
+        },
       },
       scrollable: true,
       alwaysScroll: true,
       mouse: true,
       keys: true,
       scrollbar: {
-        ch: ' ',
+        ch: " ",
         style: {
-          bg: 'blue'
-        }
-      }
+          bg: "blue",
+        },
+      },
     });
 
     // Debug panel - now underneath main panel in left column (40% of left column)
     this.debugPanel = blessed.box({
-      top: '60%',
+      top: "60%",
       left: 0,
-      width: '70%',
-      height: '40%',
-      content: 'Debug: Ready',
+      width: "70%",
+      height: "40%",
+      content: "Debug: Ready",
       tags: true,
       border: {
-        type: 'line'
+        type: "line",
       },
       style: {
-        fg: 'bright-white',
-        bg: 'blue',
+        fg: "bright-white",
+        bg: "blue",
         border: {
-          bg: 'blue'
+          bg: "blue",
         },
         label: {
-          fg: 'bright-white',
-          bg: 'blue'
-        }
+          fg: "bright-white",
+          bg: "blue",
+        },
       },
       scrollable: true,
       alwaysScroll: true,
       mouse: true,
       keys: true,
       scrollbar: {
-        ch: ' ',
+        ch: " ",
         style: {
-          bg: 'blue'
-        }
+          bg: "blue",
+        },
       },
-      label: ' Debug Messages '
+      label: " Debug Messages ",
     });
 
     // Status panel - now takes top 60% of right column
     this.statusPanel = blessed.box({
       top: 0,
-      left: '70%',
-      width: '30%',
-      height: '60%',
-      content: 'Status: Initializing...',
+      left: "70%",
+      width: "30%",
+      height: "60%",
+      content: "Status: Initializing...",
       tags: true,
       border: {
-        type: 'line'
+        type: "line",
       },
       style: {
-        fg: 'white',
-        bg: 'blue',
+        fg: "white",
+        bg: "blue",
         border: {
-          bg: 'blue'
+          bg: "blue",
         },
         label: {
-          fg: 'bright-white',
-          bg: 'blue'
-        }
+          fg: "bright-white",
+          bg: "blue",
+        },
       },
       scrollable: true,
       alwaysScroll: true,
       mouse: true,
       keys: true,
       scrollbar: {
-        ch: ' ',
+        ch: " ",
         style: {
-          bg: 'blue'
-        }
+          bg: "blue",
+        },
       },
-      label: ' LLM Status & Plans '
+      label: " LLM Status & Plans ",
     });
 
     // Input/approval area - now takes bottom 40% of right column
     this.inputBox = blessed.box({
-      top: '60%',
-      left: '70%',
-      width: '30%',
-      height: '40%',
-      content: 'Press Ctrl+C to quit. Waiting for MUD connection...',
+      top: "60%",
+      left: "70%",
+      width: "30%",
+      height: "40%",
+      content: "Press Ctrl+C to quit. Waiting for MUD connection...",
       tags: true,
       border: {
-        type: 'line'
+        type: "line",
       },
       style: {
-        fg: 'bright-white',
-        bg: 'blue',
+        fg: "bright-white",
+        bg: "blue",
         border: {
-          bg: 'blue'
+          bg: "blue",
         },
         label: {
-          fg: 'bright-white',
-          bg: 'blue'
-        }
+          fg: "bright-white",
+          bg: "blue",
+        },
       },
       scrollable: true,
       alwaysScroll: true,
       mouse: true,
       keys: true,
       scrollbar: {
-        ch: ' ',
+        ch: " ",
         style: {
-          bg: 'blue'
-        }
+          bg: "blue",
+        },
       },
-      label: ' User Input / Approval '
+      label: " User Input / Approval ",
     });
 
     // Add all panels to screen
@@ -231,22 +234,25 @@ class TUI {
     this.screen.append(this.inputBox);
 
     // Handle key presses
-    this.screen.key(['escape', 'q', 'C-c'], () => {
+    this.screen.key(["escape", "q", "C-c"], () => {
       return process.exit(0);
     });
 
     // Handle Enter key for approval
-    this.screen.key(['enter'], () => {
+    this.screen.key(["enter"], () => {
       if (this.waitingForApproval && this.approvalCallback) {
         this.waitingForApproval = false;
-        
+
         // Log approval to file
-        this.writeToLog('input', 'Command approved. Processing...');
-        
+        this.writeToLog("input", "Command approved. Processing...");
+
         // Append processing message with timestamp (consistent with updateInputStatus)
         const timestamp = new Date().toLocaleTimeString();
         const currentContent = this.inputBox.getContent();
-        this.inputBox.setContent(currentContent + `{bold}[${timestamp}]{/bold} Command approved. Processing...\n`);
+        this.inputBox.setContent(
+          currentContent +
+            `{bold}[${timestamp}]{/bold} Command approved. Processing...\n`,
+        );
         this.inputBox.scrollTo(this.inputBox.getScrollHeight());
         this.screen.render();
         this.approvalCallback();
@@ -263,7 +269,7 @@ class TUI {
    */
   writeToLog(logType, message) {
     if (!this.logFiles || !this.logFiles[logType]) return;
-    
+
     try {
       const timestamp = new Date().toISOString();
       const logEntry = `[${timestamp}] ${message}\n`;
@@ -279,16 +285,23 @@ class TUI {
    */
   showMudOutput(output) {
     if (!this.mudPanel) return;
-    
-    const timestamp = new Date().toLocaleTimeString();
-    const content = `{bold}[${timestamp}]{/bold}\n${output}\n`;
-    
-    // Log to file
-    this.writeToLog('mud', output);
-    
+
+    this.writeToLog("mud", output);
+
     // Append to existing content
     const currentContent = this.mudPanel.getContent();
-    this.mudPanel.setContent(currentContent + content);
+    this.mudPanel.setContent(`${currentContent}${output}`);
+    this.mudPanel.scrollTo(this.mudPanel.getScrollHeight());
+    this.screen.render();
+  }
+  showMudInput(input) {
+    if (!this.mudPanel) return;
+
+    this.writeToLog("mud", input);
+
+    // Append to existing content
+    const currentContent = this.mudPanel.getContent();
+    this.mudPanel.setContent(`${currentContent}{bold}${input}{/bold}\n`);
     this.mudPanel.scrollTo(this.mudPanel.getScrollHeight());
     this.screen.render();
   }
@@ -298,43 +311,43 @@ class TUI {
    */
   showLLMStatus(data) {
     if (!this.statusPanel) return;
-    
+
     const timestamp = new Date().toLocaleTimeString();
     let content = `{bold}[${timestamp}]{/bold}\n`;
-    let logContent = '';
-    
+    let logContent = "";
+
     if (data.contextInfo) {
       content += `{cyan-fg}💭 ${data.contextInfo}{/cyan-fg}\n`;
       logContent += `💭 ${data.contextInfo}\n`;
     }
-    
+
     if (data.plan) {
       content += `{yellow-fg}📋 Plan:{/yellow-fg} ${data.plan}\n`;
       logContent += `📋 Plan: ${data.plan}\n`;
     }
-    
+
     if (data.nextStep) {
       content += `{green-fg}➡️  Next Step:{/green-fg} ${data.nextStep}\n`;
       logContent += `➡️  Next Step: ${data.nextStep}\n`;
     }
-    
+
     if (data.command) {
       content += `{white-fg}🎮 Command:{/white-fg} ${data.command}\n`;
       logContent += `🎮 Command: ${data.command}\n`;
     }
-    
+
     if (data.error) {
       content += `{red-fg}❌ Error:{/red-fg} ${data.error}\n`;
       logContent += `❌ Error: ${data.error}\n`;
     }
-    
-    content += '\n';
-    
+
+    content += "\n";
+
     // Log to file
     if (logContent) {
-      this.writeToLog('status', logContent.trim());
+      this.writeToLog("status", logContent.trim());
     }
-    
+
     // Append to existing content
     const currentContent = this.statusPanel.getContent();
     this.statusPanel.setContent(currentContent + content);
@@ -347,14 +360,14 @@ class TUI {
    */
   showDebug(message) {
     if (!this.debugPanel) return;
-    
+
     const timestamp = new Date().toLocaleTimeString();
     const content = `{bold}[${timestamp}]{/bold} ${message}\n`;
-    
+
     // Log to file
-    this.writeToLog('debug', message);
-    
-    // Append to existing content  
+    this.writeToLog("debug", message);
+
+    // Append to existing content
     const currentContent = this.debugPanel.getContent();
     this.debugPanel.setContent(currentContent + content);
     this.debugPanel.scrollTo(this.debugPanel.getScrollHeight());
@@ -368,14 +381,14 @@ class TUI {
     return new Promise((resolve) => {
       this.waitingForApproval = true;
       this.approvalCallback = resolve;
-      
+
       // Log to file
-      this.writeToLog('input', `APPROVAL REQUIRED: ${message}`);
-      
+      this.writeToLog("input", `APPROVAL REQUIRED: ${message}`);
+
       // Append approval prompt with clear visual separator (consistent with other methods)
       const timestamp = new Date().toLocaleTimeString();
       const currentContent = this.inputBox.getContent();
-      const separator = '\n' + '━'.repeat(35) + '\n';
+      const separator = "\n" + "━".repeat(35) + "\n";
       const promptContent = `${separator}{bold}[${timestamp}] APPROVAL REQUIRED{/bold}\n${message}\n\n{bold}{yellow-fg}Press ENTER to approve, or Ctrl+C to quit{/yellow-fg}{/bold}\n`;
       this.inputBox.setContent(currentContent + promptContent);
       this.inputBox.scrollTo(this.inputBox.getScrollHeight());
@@ -388,9 +401,9 @@ class TUI {
    */
   clearInputBox() {
     if (!this.inputBox) return;
-    
+
     // Multiple approaches to ensure clearing works with blessed.js
-    this.inputBox.setContent('');
+    this.inputBox.setContent("");
     this.inputBox.setScrollPerc(0);
     // Force a repaint by temporarily hiding and showing
     this.inputBox.hide();
@@ -404,10 +417,10 @@ class TUI {
    */
   updateInputStatus(message) {
     if (!this.inputBox) return;
-    
+
     // Log to file
-    this.writeToLog('input', message);
-    
+    this.writeToLog("input", message);
+
     // Append to existing content with timestamp and separator for better readability
     const timestamp = new Date().toLocaleTimeString();
     const newContent = `{bold}[${timestamp}]{/bold} ${message}\n`;
