@@ -3,10 +3,10 @@
  * Connects LLM directly to MUD with minimal processing
  */
 
-const Telnet = require('telnet-client');
-const axios = require('axios');
-const TUI = require('./tui');
-const CharacterManager = require('./character-manager');
+const Telnet = require("telnet-client");
+const axios = require("axios");
+const TUI = require("./tui");
+const CharacterManager = require("./character-manager");
 
 class MudClient {
   constructor(config, options = {}) {
@@ -27,14 +27,14 @@ class MudClient {
 
     // Conversation history for LLM context
     this.conversationHistory = [];
-    this.maxHistoryLength = 10; // Keep last 10 interactions
+    this.maxHistoryLength = 30; // Keep last 30 interactions
 
     // Generate system prompt based on character selection
     this.systemPrompt = this.generateSystemPrompt();
 
     // Initialize conversation history with system prompt
     this.conversationHistory.push({
-      role: 'system',
+      role: "system",
       content: this.systemPrompt,
     });
 
@@ -42,7 +42,7 @@ class MudClient {
       baseURL: config.ollama.baseUrl,
       timeout: 30000,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
   }
@@ -165,16 +165,16 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    */
   async start() {
     try {
-      this.tui.updateInputStatus('Connecting to MUD...');
+      this.tui.updateInputStatus("Connecting to MUD...");
       await this.connectToMud();
-      this.tui.showDebug('Connected to MUD, starting LLM interaction...');
+      this.tui.showDebug("Connected to MUD, starting LLM interaction...");
       this.tui.showLLMStatus({
-        contextInfo: 'Conversation history initialized with system prompt',
+        contextInfo: "Conversation history initialized with system prompt",
       });
 
       // Send initial prompt to LLM to start the game
       await this.sendToLLM(
-        'You have connected to Arctic MUD. Send start to creating a character, or your name to start logging in if you know a name and password.',
+        "You have connected to Arctic MUD. Send start to creating a character, or your name to start logging in if you know a name and password.",
       );
     } catch (error) {
       this.tui.showDebug(`Error starting MUD client: ${error.message}`);
@@ -199,23 +199,23 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         debug: this.debug,
       };
 
-      this.telnetSocket.on('data', (data) => {
+      this.telnetSocket.on("data", (data) => {
         this.handleMudOutput(data);
       });
 
-      this.telnetSocket.on('close', () => {
-        this.tui.showDebug('MUD connection closed');
+      this.telnetSocket.on("close", () => {
+        this.tui.showDebug("MUD connection closed");
         this.isConnected = false;
       });
 
-      this.telnetSocket.on('error', (error) => {
+      this.telnetSocket.on("error", (error) => {
         this.tui.showDebug(`MUD connection error: ${error.message}`);
       });
 
       await this.telnetSocket.connect(connectionParams);
       this.isConnected = true;
       this.tui.updateInputStatus(
-        'Connected to MUD. Waiting for LLM responses...',
+        "Connected to MUD. Waiting for LLM responses...",
       );
     } catch (error) {
       this.tui.showDebug(`Failed to connect to MUD: ${error.message}`);
@@ -234,7 +234,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     // Store the output for context
     this.messageHistory.push({
-      type: 'mud_output',
+      type: "mud_output",
       content: output,
       timestamp: new Date(),
     });
@@ -250,7 +250,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     try {
       // Add MUD output to conversation history
       this.conversationHistory.push({
-        role: 'tool',
+        role: "tool",
         content: `${mudOutput}`,
       });
 
@@ -266,7 +266,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         );
       }
 
-      const response = await this.httpClient.post('/api/chat', {
+      const response = await this.httpClient.post("/api/chat", {
         model: this.config.ollama.model,
         messages: this.conversationHistory,
         options: {
@@ -285,7 +285,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       // Add LLM response to conversation history
       this.conversationHistory.push({
-        role: 'assistant',
+        role: "assistant",
         content: llmResponse,
       });
 
@@ -303,7 +303,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
           // If a new character was created, set it as current
           if (
-            response.startsWith('OK - Character recorded:') &&
+            response.startsWith("OK - Character recorded:") &&
             !this.currentCharacterId
           ) {
             const characters = this.characterManager.getCharactersList();
@@ -317,16 +317,16 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
           // Send system response back to LLM
           this.conversationHistory.push({
-            role: 'tool',
+            role: "tool",
             content: response,
           });
         }
       }
 
       if (!parsed.command) {
-        parsed.command = '\n';
+        parsed.command = "\n";
         this.tui.showLLMStatus({
-          error: 'No command found, sending newline to continue.',
+          error: "No command found, sending newline to continue.",
         });
       }
 
@@ -338,7 +338,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         await this.sendToMud(parsed.command);
       } else {
         this.tui.showLLMStatus({
-          error: 'No valid command found in LLM response',
+          error: "No valid command found in LLM response",
         });
         if (this.debug) {
           this.tui.showDebug(
@@ -352,8 +352,8 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       });
 
       // Simple fallback - send 'look' command
-      this.tui.showDebug('🔄 Using fallback command: look');
-      await this.sendToMud('look');
+      this.tui.showDebug("🔄 Using fallback command: look");
+      await this.sendToMud("look");
     }
   }
 
@@ -390,7 +390,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         (msg, index) =>
           `${index + 1}. ${msg.role}: ${msg.content.substring(0, 100)}...`,
       )
-      .join('\n');
+      .join("\n");
   }
 
   /**
@@ -433,7 +433,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     if (command) {
       // Validate command is single line
-      const commandLines = command.split('\n').filter((line) => line.trim());
+      const commandLines = command.split("\n").filter((line) => line.trim());
       if (commandLines.length > 1) {
         statusData.error = `REJECTED: Command contains multiple lines: ${command}`;
         this.tui.showLLMStatus(statusData);
@@ -442,7 +442,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       statusData.command = command;
     } else {
-      statusData.error = 'No command found in <command> block or code block';
+      statusData.error = "No command found in <command> block or code block";
     }
 
     this.tui.showLLMStatus(statusData);
@@ -480,7 +480,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    */
   async sendToMud(command) {
     if (!this.isConnected || !this.telnetSocket) {
-      this.tui.showDebug('Cannot send command: not connected to MUD');
+      this.tui.showDebug("Cannot send command: not connected to MUD");
       return;
     }
 
@@ -491,13 +491,13 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       // Store the command for context
       this.messageHistory.push({
-        type: 'command_sent',
+        type: "command_sent",
         content: command,
         timestamp: new Date(),
       });
 
       // Update UI status
-      this.tui.updateInputStatus('Command sent. Waiting for MUD response...');
+      this.tui.updateInputStatus("Command sent. Waiting for MUD response...");
 
       // Add a small delay to avoid flooding
       await this.sleep(this.config.behavior?.commandDelayMs || 2000);
