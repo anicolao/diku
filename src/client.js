@@ -31,6 +31,11 @@ class MudClient {
     this.conversationHistory = [];
     this.maxTokens = options.maxTokens || 100000; // Maximum token limit for context window
 
+    // LLM request state tracking
+    this.llmRequestPending = false;
+    this.mudOutputQueue = [];
+    this.waitingForMudResponse = false;
+
     // Generate system prompt based on character selection
     this.systemPrompt = this.generateSystemPrompt();
 
@@ -349,6 +354,28 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       timestamp: new Date(),
     });
 
+    // If we were waiting for MUD response after sending a command, 
+    // now we can process any queued messages
+    if (this.waitingForMudResponse) {
+      this.waitingForMudResponse = false;
+      this.tui.showDebug('Received MUD response after command, processing queued messages...');
+      
+      // Add current output to the queue and process all together
+      if (this.mudOutputQueue.length > 0) {
+        this.mudOutputQueue.push(output);
+        await this.processQueuedMessages();
+        return; // processQueuedMessages will handle the combined LLM request
+      }
+      // If no queued messages, just continue with normal processing
+    }
+
+    // If LLM request is pending, queue this output instead of sending immediately
+    if (this.llmRequestPending) {
+      this.tui.showDebug('LLM request pending, queuing MUD output...');
+      this.mudOutputQueue.push(output);
+      return;
+    }
+
     // Send to LLM for decision
     await this.sendToLLM(output);
   }
@@ -360,6 +387,15 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Send message to LLM and handle response
    */
   async sendToLLM(mudOutput) {
+    // Prevent concurrent LLM requests
+    if (this.llmRequestPending) {
+      this.tui.showDebug('LLM request already pending, ignoring new request');
+      return;
+    }
+
+    this.llmRequestPending = true;
+    this.tui.showDebug('🔄 LLM request started');
+
     try {
       // Add MUD output to conversation history
       this.conversationHistory.push({
@@ -480,6 +516,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
           `✅ Ready to send command to MUD: ${parsed.command}`,
         );
         this.tui.showMudInput(parsed.command);
+        this.waitingForMudResponse = true;
         await this.sendToMud(parsed.command);
       } else {
         this.tui.showLLMStatus({
@@ -516,8 +553,38 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       // Simple fallback - send 'look' command
       this.tui.showDebug('🔄 Using fallback command: look');
+      this.waitingForMudResponse = true;
       await this.sendToMud('look');
+    } finally {
+      // Mark LLM request as completed but don't process queued messages yet
+      // We need to wait for the MUD response after sending the command
+      this.llmRequestPending = false;
+      this.tui.showDebug('✅ LLM request completed');
     }
+  }
+
+  /**
+   * Process queued MUD messages after LLM request completion
+   */
+  async processQueuedMessages() {
+    // This should only be called when no LLM request is pending
+    if (this.llmRequestPending) {
+      this.tui.showDebug('ERROR: processQueuedMessages called while LLM request is pending');
+      return;
+    }
+
+    if (this.mudOutputQueue.length === 0) {
+      return;
+    }
+
+    this.tui.showDebug(`Processing ${this.mudOutputQueue.length} queued MUD messages...`);
+
+    // Combine all queued messages into a single message
+    const combinedOutput = this.mudOutputQueue.join('\n');
+    this.mudOutputQueue = []; // Clear the queue
+
+    // Send the combined output to LLM for processing
+    await this.sendToLLM(combinedOutput);
   }
 
   /**
