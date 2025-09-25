@@ -134,6 +134,58 @@ describe('Simplified Diku MUD AI Player', () => {
       expect(client.extractCommand(response3)).toBe(null);
     });
 
+    test('should handle literal return/enter commands', () => {
+      client = new MudClient(mockConfig);
+      
+      // Test literal "return" command
+      const response1 = 'I need to press return.\n\n<command>\nreturn\n</command>';
+      expect(client.extractCommand(response1)).toBe('\n');
+      
+      // Test literal "enter" command
+      const response2 = 'Let me press enter.\n\n<command>\nenter\n</command>';
+      expect(client.extractCommand(response2)).toBe('\n');
+      
+      // Test case insensitive "RETURN"
+      const response3 = 'I need to press RETURN.\n\n<command>\nRETURN\n</command>';
+      expect(client.extractCommand(response3)).toBe('\n');
+      
+      // Test case insensitive "ENTER"
+      const response4 = 'Let me press ENTER.\n\n<command>\nENTER\n</command>';
+      expect(client.extractCommand(response4)).toBe('\n');
+      
+      // Test partial "e" command (common shorthand)
+      const response5 = 'I will press e for enter.\n\n<command>\ne\n</command>';
+      expect(client.extractCommand(response5)).toBe('\n');
+      
+      // Test partial "en" command
+      const response6 = 'I will press en for enter.\n\n<command>\nen\n</command>';
+      expect(client.extractCommand(response6)).toBe('\n');
+      
+      // Test partial "ent" command
+      const response7 = 'I will press ent for enter.\n\n<command>\nent\n</command>';
+      expect(client.extractCommand(response7)).toBe('\n');
+      
+      // Test partial "ente" command
+      const response8 = 'I will press ente for enter.\n\n<command>\nente\n</command>';
+      expect(client.extractCommand(response8)).toBe('\n');
+      
+      // Test that regular commands starting with "e" are not affected
+      const response9 = 'I will examine something.\n\n<command>\nexamine table\n</command>';
+      expect(client.extractCommand(response9)).toBe('examine table');
+      
+      // Test that "exit" is not treated as enter
+      const response10 = 'I will exit.\n\n<command>\nexit\n</command>';
+      expect(client.extractCommand(response10)).toBe('exit');
+      
+      // Test in telnet code blocks
+      const response11 = 'I need to press return.\n\n```telnet\nreturn\n```';
+      expect(client.extractCommand(response11)).toBe('\n');
+      
+      // Test in regular code blocks
+      const response12 = 'I need to press enter.\n\n```\nenter\n```';
+      expect(client.extractCommand(response12)).toBe('\n');
+    });
+
     test('should reject multi-line commands', () => {
       client = new MudClient(mockConfig);
       

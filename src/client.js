@@ -619,26 +619,40 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Extract command from LLM response
    */
   extractCommand(llmResponse) {
+    let command = null;
+
     // Look for <command> blocks (preferred format)
     const commandMatch = llmResponse.match(/<command>\s*(.*?)\s*<\/command>/s);
     if (commandMatch) {
-      return commandMatch[1].trim();
+      command = commandMatch[1].trim();
+    } else {
+      // Look for ```telnet code blocks (legacy)
+      const telnetMatch = llmResponse.match(/```telnet\s*\n?(.*?)\n?```/s);
+      if (telnetMatch) {
+        command = telnetMatch[1].trim();
+      } else {
+        // Look for any code block (fallback)
+        const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
+        if (codeMatch) {
+          command = codeMatch[1].trim();
+        }
+      }
     }
 
-    // Look for ```telnet code blocks (legacy)
-    const telnetMatch = llmResponse.match(/```telnet\s*\n?(.*?)\n?```/s);
-    if (telnetMatch) {
-      return telnetMatch[1].trim();
+    // If no command found, return null
+    if (!command) {
+      return null;
     }
 
-    // Look for any code block (fallback)
-    const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
-    if (codeMatch) {
-      return codeMatch[1].trim();
+    // Check for literal return/enter commands and convert to newline
+    const lowerCommand = command.toLowerCase().trim();
+    if (lowerCommand === 'return' || 
+        lowerCommand === 'enter' || 
+        lowerCommand.startsWith('e') && (lowerCommand === 'e' || lowerCommand === 'en' || lowerCommand === 'ent' || lowerCommand === 'ente')) {
+      return '\n';
     }
 
-    // No command block found
-    return null;
+    return command;
   }
 
   /**
