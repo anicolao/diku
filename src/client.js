@@ -268,7 +268,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         
         // Create raw TCP socket connection
         this.socket = new net.Socket();
-        this.socket.setTimeout(15000); // 15 second timeout
+        this.socket.setTimeout(3600000); // 1 hour timeout (3600 seconds * 1000ms)
         
         // Set up event handlers before connecting
         this.socket.on('data', (data) => {
