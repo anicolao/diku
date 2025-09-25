@@ -229,15 +229,13 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     try {
       this.tui.updateInputStatus('Connecting to MUD...');
       await this.connectToMud();
-      this.tui.showDebug('Connected to MUD, starting LLM interaction...');
+      this.tui.showDebug('Connected to MUD, waiting for login banner...');
       this.tui.showLLMStatus({
         contextInfo: 'Conversation history initialized with system prompt',
       });
 
-      // Send initial prompt to LLM to start the game
-      await this.sendToLLM(
-        'You have connected to Arctic MUD. Send start to creating a character, or your name to start logging in if you know a name and password.',
-      );
+      // Wait for MUD to send login banner - it will be handled by handleMudOutput()
+      // No need to send hardcoded initial prompt, let the MUD server provide the real banner
     } catch (error) {
       this.tui.showDebug(`Error starting MUD client: ${error.message}`);
       throw error;
