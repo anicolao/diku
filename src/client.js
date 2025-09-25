@@ -5,6 +5,7 @@
 
 const Telnet = require('telnet-client');
 const axios = require('axios');
+const stripAnsi = require('strip-ansi');
 const TUI = require('./tui');
 const CharacterManager = require('./character-manager');
 
@@ -303,7 +304,10 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Handle output from the MUD
    */
   async handleMudOutput(data) {
-    const output = data.toString();
+    const rawOutput = data.toString();
+    
+    // Strip ANSI escape sequences from MUD output
+    const output = stripAnsi(rawOutput);
 
     // Show MUD output in the TUI main panel
     this.tui.showMudOutput(output);
