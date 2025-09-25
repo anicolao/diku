@@ -17,6 +17,7 @@ class MudClient {
 
     this.telnetSocket = null;
     this.isConnected = false;
+    this.initialDataReceived = false;
     this.messageHistory = [];
 
     // Initialize TUI
@@ -234,8 +235,23 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         contextInfo: 'Conversation history initialized with system prompt',
       });
 
-      // Wait for MUD to send login banner - it will be handled by handleMudOutput()
-      // No need to send hardcoded initial prompt, let the MUD server provide the real banner
+      // Wait a bit for initial MUD banner/data
+      // If no data arrives within reasonable time, send a minimal prompt
+      const maxWaitTime = 5000; // 5 seconds
+      const waitStart = Date.now();
+      
+      while (!this.initialDataReceived && (Date.now() - waitStart) < maxWaitTime) {
+        await this.sleep(100);
+      }
+      
+      if (!this.initialDataReceived) {
+        this.tui.showDebug('No initial data received from MUD, sending minimal initialization prompt to LLM');
+        // Send a minimal prompt only if no MUD data was received
+        await this.sendToLLM(
+          'Connected to MUD. Waiting for server response...',
+        );
+      }
+      // If initialDataReceived is true, the data was already processed by handleMudOutput
     } catch (error) {
       this.tui.showDebug(`Error starting MUD client: ${error.message}`);
       throw error;
@@ -248,19 +264,30 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   async connectToMud() {
     try {
       this.telnetSocket = new Telnet();
+      this.initialDataReceived = false;
 
       const connectionParams = {
         host: this.config.mud.host,
         port: this.config.mud.port,
-        timeout: 10000,
-        negotiationMandatory: false,
-        shellPrompt: /.*/, // Match any prompt
-        pageSeparator: /--More--/,
+        timeout: 15000, // Longer timeout for MUD connection
+        negotiationMandatory: false, // Critical: don't wait for shell prompts
+        shellPrompt: '', // Empty prompt to avoid parsing
+        loginPrompt: '', // Empty to avoid login detection
+        passwordPrompt: '', // Empty to avoid password detection
         debug: this.debug,
       };
 
+      // Set up event handlers before connecting
       this.telnetSocket.on('data', (data) => {
         this.handleMudOutput(data);
+      });
+
+      this.telnetSocket.on('ready', (prompt) => {
+        this.tui.showDebug(`Telnet ready: ${prompt ? JSON.stringify(prompt.toString()) : 'no prompt'}`);
+      });
+
+      this.telnetSocket.on('connect', () => {
+        this.tui.showDebug('Raw socket connected to MUD server');
       });
 
       this.telnetSocket.on('close', () => {
@@ -272,11 +299,13 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         this.tui.showDebug(`MUD connection error: ${error.message}`);
       });
 
+      // Connect with minimal negotiation
       await this.telnetSocket.connect(connectionParams);
       this.isConnected = true;
-      this.tui.updateInputStatus(
-        'Connected to MUD. Waiting for LLM responses...',
-      );
+      
+      this.tui.updateInputStatus('Connected to MUD. Waiting for login banner...');
+      this.tui.showDebug('MUD connection established successfully');
+      
     } catch (error) {
       this.tui.showDebug(`Failed to connect to MUD: ${error.message}`);
       throw error;
@@ -291,6 +320,11 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     
     // Strip ANSI escape sequences from MUD output
     const output = stripAnsi(rawOutput);
+
+    // Mark that we've received initial data from MUD
+    this.initialDataReceived = true;
+
+    this.tui.showDebug('Received MUD output, processing...');
 
     // Show MUD output in the TUI main panel
     this.tui.showMudOutput(output);
