@@ -117,17 +117,17 @@ describe('Simplified Diku MUD AI Player', () => {
     test('should extract commands from LLM response', () => {
       client = new MudClient(mockConfig);
       
-      // Test <command> block extraction (preferred format)
+      // Test <command> block extraction (only supported format)
       const response0 = 'I will create a character.\n\n<command>\nlook\n</command>';
       expect(client.extractCommand(response0)).toBe('look');
-
-      // Test regular code block extraction (fallback)
-      const response2 = 'Let me examine the area.\n\n```\nexamine room\n```';
-      expect(client.extractCommand(response2)).toBe('examine room');
 
       // Test no command block
       const response3 = 'I need to think about this.';
       expect(client.extractCommand(response3)).toBe(null);
+      
+      // Test code blocks are not supported (should return null)
+      const response4 = 'Let me examine the area.\n\n```\nexamine room\n```';
+      expect(client.extractCommand(response4)).toBe(null);
     });
 
     test('should handle literal return/enter commands', () => {
@@ -160,10 +160,6 @@ describe('Simplified Diku MUD AI Player', () => {
       // Test that single "e" is not treated as enter (no partial matches)
       const response11 = 'I will use e command.\n\n<command>\ne\n</command>';
       expect(client.extractCommand(response11)).toBe('e');
-      
-      // Test in regular code blocks
-      const response12 = 'I need to press enter.\n\n```\nenter\n```';
-      expect(client.extractCommand(response12)).toBe('\n');
     });
 
     test('should reject multi-line commands', () => {
