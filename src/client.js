@@ -54,7 +54,10 @@ class MudClient {
     const basePrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
 
 **Environment**
-You can send text commands over the telnet connection and receive output from the server.
+You can send text commands over the telnet connection and receive output from the server. In a text adventure game,
+the commands are typically just one or two words, such as "look", "north", "get sword", "attack orc", "say hello", etc. Don't
+generate long sentences or paragraphs. Keep your commands concise and to the point, including when interacting with NPCs. Use
+"help" to learn general commands, or "look NPC" to learn how to interact with an NPC. Each NPC has their own set of commands.
 
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
@@ -68,15 +71,20 @@ You can send text commands over the telnet connection and receive output from th
 - Focus on character creation, leveling, and social interaction
 - **Use anicolao@gmail.com if asked for an email address**
 - **Always** include a <command> block
-- **When interacting with NPCs**: Start by sending them a 'help' command to learn their available commands
-- **After getting help from an NPC**: Stick to the vocabulary and commands suggested by their 'help' response
+- **When interacting with NPCs**: Start by using a 'look NPC' command to learn their available commands
+- **If the game says "Huh?!"**: It means you sent an invalid command. Use "help" *immediately* to learn valid commands.
+- **Do not write in full sentences** look for commands of the form <action> <target> and only rarely with more text after that.
 `;
 
     // Add character-specific context if a character is selected
     if (this.currentCharacterId) {
-      const characterContext = this.characterManager.generateCharacterContext(this.currentCharacterId);
+      const characterContext = this.characterManager.generateCharacterContext(
+        this.currentCharacterId,
+      );
       if (characterContext) {
-        return basePrompt + `
+        return (
+          basePrompt +
+          `
 
 **Character Context**
 Continuing as: ${characterContext.name} (Level ${characterContext.level} ${characterContext.class}, ${characterContext.race})
@@ -86,7 +94,7 @@ Last location: ${characterContext.location}
 Recent memories:
 ${characterContext.memories}
 
-Login: Send your character name as the first command.
+Login: Send your character name *by itself* as the first command, followed by your password *by itself* as the second command.
 
 Record experiences:
 <record-memory>
@@ -97,12 +105,15 @@ Record experiences:
 }
 </record-memory>
 
-Continue with this character's established goals and relationships.`;
+Continue with this character's established goals and relationships.`
+        );
       }
     }
 
     // For new character creation
-    return basePrompt + `
+    return (
+      basePrompt +
+      `
 
 **Character Creation**
 First Command: Send <command>
@@ -130,7 +141,8 @@ Record significant experiences:
 }
 </record-memory>
 
-System responds with "OK" or "ERROR - message". Use these tools when appropriate.`;
+System responds with "OK" or "ERROR - message". Use these tools when appropriate.`
+    );
   }
 
   /**
@@ -141,7 +153,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       this.tui.updateInputStatus('Connecting to MUD...');
       await this.connectToMud();
       this.tui.showDebug('Connected to MUD, starting LLM interaction...');
-      this.tui.showLLMStatus({ contextInfo: 'Conversation history initialized with system prompt' });
+      this.tui.showLLMStatus({
+        contextInfo: 'Conversation history initialized with system prompt',
+      });
 
       // Send initial prompt to LLM to start the game
       await this.sendToLLM(
@@ -185,7 +199,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       await this.telnetSocket.connect(connectionParams);
       this.isConnected = true;
-      this.tui.updateInputStatus('Connected to MUD. Waiting for LLM responses...');
+      this.tui.updateInputStatus(
+        'Connected to MUD. Waiting for LLM responses...',
+      );
     } catch (error) {
       this.tui.showDebug(`Failed to connect to MUD: ${error.message}`);
       throw error;
@@ -230,7 +246,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         this.tui.showDebug(
           `Sending to LLM with conversation history. Current history length: ${this.conversationHistory.length}`,
         );
-        this.tui.showDebug(`=== Latest MUD Output ===\n${mudOutput}\n=========================`);
+        this.tui.showDebug(
+          `=== Latest MUD Output ===\n${mudOutput}\n=========================`,
+        );
       }
 
       const response = await this.httpClient.post('/api/chat', {
@@ -245,7 +263,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       const llmResponse = response.data.message.content;
 
       if (this.debug) {
-        this.tui.showDebug(`=== LLM Response ===\n${llmResponse}\n====================`);
+        this.tui.showDebug(
+          `=== LLM Response ===\n${llmResponse}\n====================`,
+        );
       }
 
       // Add LLM response to conversation history
@@ -258,20 +278,28 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       const parsed = this.parseLLMResponse(llmResponse);
 
       // Process character management commands
-      const characterResponses = this.characterManager.processLLMResponse(llmResponse, this.currentCharacterId);
+      const characterResponses = this.characterManager.processLLMResponse(
+        llmResponse,
+        this.currentCharacterId,
+      );
       if (characterResponses.length > 0) {
         for (const response of characterResponses) {
           this.tui.showDebug(`💾 Character System: ${response}`);
-          
+
           // If a new character was created, set it as current
-          if (response.startsWith('OK - Character recorded:') && !this.currentCharacterId) {
+          if (
+            response.startsWith('OK - Character recorded:') &&
+            !this.currentCharacterId
+          ) {
             const characters = this.characterManager.getCharactersList();
             if (characters.length > 0) {
               this.currentCharacterId = characters[characters.length - 1].id; // Use the most recently created
-              this.tui.showDebug(`🆔 Set current character ID: ${this.currentCharacterId}`);
+              this.tui.showDebug(
+                `🆔 Set current character ID: ${this.currentCharacterId}`,
+              );
             }
           }
-          
+
           // Send system response back to LLM
           this.conversationHistory.push({
             role: 'tool',
@@ -282,21 +310,31 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       if (!parsed.command) {
         parsed.command = '\n';
-        this.tui.showLLMStatus({ error: 'No command found, sending newline to continue.' });
+        this.tui.showLLMStatus({
+          error: 'No command found, sending newline to continue.',
+        });
       }
 
       if (parsed.command) {
         this.tui.showLLMStatus({ command: parsed.command });
-        await this.tui.waitForApproval(`✅ Ready to send command to MUD: ${parsed.command}`);
+        await this.tui.waitForApproval(
+          `✅ Ready to send command to MUD: ${parsed.command}`,
+        );
         await this.sendToMud(parsed.command);
       } else {
-        this.tui.showLLMStatus({ error: 'No valid command found in LLM response' });
+        this.tui.showLLMStatus({
+          error: 'No valid command found in LLM response',
+        });
         if (this.debug) {
-          this.tui.showDebug(`=== Full LLM Response (No Command Found) ===\n${llmResponse}\n============================================`);
+          this.tui.showDebug(
+            `=== Full LLM Response (No Command Found) ===\n${llmResponse}\n============================================`,
+          );
         }
       }
     } catch (error) {
-      this.tui.showLLMStatus({ error: `Error communicating with LLM: ${error.message}` });
+      this.tui.showLLMStatus({
+        error: `Error communicating with LLM: ${error.message}`,
+      });
 
       // Simple fallback - send 'look' command
       this.tui.showDebug('🔄 Using fallback command: look');
@@ -349,10 +387,12 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     // Extract plan from <plan> blocks (XML-style)
     const planMatch = llmResponse.match(/<plan>\s*(.*?)\s*<\/plan>/is);
     let plan = planMatch ? planMatch[1].trim() : null;
-    
+
     // Fallback: Extract plan from **Plan**: headers (markdown-style)
     if (!plan) {
-      const planMarkdownMatch = llmResponse.match(/\*\*Plan\*\*:?\s*(.*?)(?=\n|$)/i);
+      const planMarkdownMatch = llmResponse.match(
+        /\*\*Plan\*\*:?\s*(.*?)(?=\n|$)/i,
+      );
       plan = planMarkdownMatch ? planMarkdownMatch[1].trim() : null;
     }
 
@@ -367,7 +407,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     // Display the parsed information in TUI
     const statusData = { contextInfo };
-    
+
     if (plan) {
       statusData.plan = plan;
     }
@@ -463,7 +503,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       }
     }
     this.isConnected = false;
-    
+
     // Clean up TUI
     if (this.tui) {
       this.tui.destroy();
