@@ -138,6 +138,21 @@ available depend on what's in the current room (items, NPCs, exits).
 Look for keywords hidden in descriptions - they often appear as
 nouns or verbs in the text.
 
+**Game Status Information**
+The MUD displays your character status in a prompt line before each command, typically formatted like:
+"56H 118V 1499X 0.00% 0C T:60 Exits:D"
+
+This status line contains crucial information:
+- **H** = Hit Points (health/life) - current health out of maximum
+- **V** = Move Points (movement stamina) - energy for moving between rooms  
+- **X** = Experience Points - accumulated experience toward next level
+- **%** = Progress to Next Level - percentage complete to next level (e.g., 0.00%)
+- **C** = Coins - money/currency you are carrying
+- **T:** = Time to Next Tick - seconds until next game tick/update
+- **Exits:** = Visible Exits - available directions (N=North, S=South, E=East, W=West, U=Up, D=Down)
+
+Monitor these values carefully to track your character's condition and plan actions accordingly.
+
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
 2. **Command**: Send a <command>your command</command> block which contains **one command** to be transmitted to the server
