@@ -181,8 +181,8 @@ look
     test('should include NPC interaction help instructions in system prompt', () => {
       client = new MudClient(mockConfig);
       expect(client.systemPrompt).toContain('When interacting with NPCs');
-      expect(client.systemPrompt).toContain("sending them a 'help' command");
-      expect(client.systemPrompt).toContain('Stick to the vocabulary and commands suggested');
+      expect(client.systemPrompt).toContain('look NPC');
+      expect(client.systemPrompt).toContain('Each NPC has their own set of commands');
     });
 
     test('should handle debug mode', () => {
@@ -192,11 +192,112 @@ look
   });
 
   describe('Configuration', () => {
-    test('should load config.json', () => {
+    test('should load config.json with new format', () => {
       const config = require('../config.example.json');
-      expect(config.ollama.baseUrl).toBe('http://localhost:11434');
+      expect(config.llm.ollama.baseUrl).toBe('http://localhost:11434');
+      expect(config.llm.openai.baseUrl).toBe('https://api.openai.com/v1');
       expect(config.mud.host).toBe('arctic.org');
       expect(config.mud.port).toBe(2700);
+    });
+
+    test('should support backward compatibility with old config format', () => {
+      const legacyConfig = {
+        ollama: {
+          baseUrl: 'http://localhost:11434',
+          model: 'llama2',
+          temperature: 0.7
+        },
+        mud: {
+          host: 'arctic.org',
+          port: 2700
+        },
+        behavior: {
+          commandDelayMs: 1000
+        }
+      };
+
+      client = new MudClient(legacyConfig);
+      expect(client.llmProvider).toBe('ollama');
+      expect(client.llmConfig.baseUrl).toBe('http://localhost:11434');
+      expect(client.llmConfig.model).toBe('llama2');
+    });
+
+    test('should configure OpenAI provider', () => {
+      const openaiConfig = {
+        llm: {
+          provider: 'openai',
+          openai: {
+            baseUrl: 'https://api.openai.com/v1',
+            model: 'gpt-4',
+            temperature: 0.7,
+            apiKey: 'test-api-key'
+          }
+        },
+        mud: {
+          host: 'arctic.org',
+          port: 2700
+        },
+        behavior: {
+          commandDelayMs: 1000
+        }
+      };
+
+      client = new MudClient(openaiConfig);
+      expect(client.llmProvider).toBe('openai');
+      expect(client.llmConfig.baseUrl).toBe('https://api.openai.com/v1');
+      expect(client.llmConfig.model).toBe('gpt-4');
+      expect(client.llmConfig.apiKey).toBe('test-api-key');
+    });
+
+    test('should default to ollama provider when not specified', () => {
+      const configWithoutProvider = {
+        llm: {
+          ollama: {
+            baseUrl: 'http://localhost:11434',
+            model: 'llama2',
+            temperature: 0.7
+          }
+        },
+        mud: {
+          host: 'arctic.org',
+          port: 2700
+        },
+        behavior: {
+          commandDelayMs: 1000
+        }
+      };
+
+      client = new MudClient(configWithoutProvider);
+      expect(client.llmProvider).toBe('ollama');
+    });
+
+    test('should throw error when no LLM configuration found', () => {
+      const invalidConfig = {
+        mud: {
+          host: 'arctic.org',
+          port: 2700
+        }
+      };
+
+      expect(() => new MudClient(invalidConfig)).toThrow('No LLM configuration found');
+    });
+
+    test('should throw error when provider configuration missing', () => {
+      const invalidConfig = {
+        llm: {
+          provider: 'openai',
+          ollama: {
+            baseUrl: 'http://localhost:11434',
+            model: 'llama2'
+          }
+        },
+        mud: {
+          host: 'arctic.org',
+          port: 2700
+        }
+      };
+
+      expect(() => new MudClient(invalidConfig)).toThrow("LLM provider 'openai' configuration not found");
     });
   });
 });

@@ -16,6 +16,7 @@
     "diku",
     "ai",
     "ollama",
+    "openai",
     "game",
     "client",
     "telnet",

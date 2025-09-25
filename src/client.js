@@ -38,13 +38,52 @@ class MudClient {
       content: this.systemPrompt,
     });
 
+    // Determine LLM provider and setup HTTP client
+    this.setupLLMProvider(config);
+  }
+
+  /**
+   * Setup LLM provider (Ollama or OpenAI) with backward compatibility
+   */
+  setupLLMProvider(config) {
+    // Support backward compatibility with old config format
+    if (config.ollama && !config.llm) {
+      // Legacy config format - use Ollama
+      this.llmProvider = 'ollama';
+      this.llmConfig = config.ollama;
+    } else if (config.llm) {
+      // New config format
+      this.llmProvider = config.llm.provider || 'ollama';
+      this.llmConfig = config.llm[this.llmProvider];
+    } else {
+      throw new Error('No LLM configuration found. Please configure either ollama or llm section in config.');
+    }
+
+    // Validate configuration
+    if (!this.llmConfig) {
+      throw new Error(`LLM provider '${this.llmProvider}' configuration not found in config.`);
+    }
+
+    // Setup HTTP client based on provider
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (this.llmProvider === 'openai' && this.llmConfig.apiKey) {
+      headers['Authorization'] = `Bearer ${this.llmConfig.apiKey}`;
+    }
+
     this.httpClient = axios.create({
-      baseURL: config.ollama.baseUrl,
+      baseURL: this.llmConfig.baseUrl,
       timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
+
+    if (this.debug) {
+      console.log(`LLM Provider: ${this.llmProvider}`);
+      console.log(`LLM Model: ${this.llmConfig.model}`);
+      console.log(`LLM Base URL: ${this.llmConfig.baseUrl}`);
+    }
   }
 
   /**
@@ -251,16 +290,31 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         );
       }
 
-      const response = await this.httpClient.post('/api/chat', {
-        model: this.config.ollama.model,
-        messages: this.conversationHistory,
-        options: {
-          temperature: this.config.ollama.temperature || 0.7,
-        },
-        stream: false,
-      });
+      // Make API call based on provider
+      let response;
+      let llmResponse;
 
-      const llmResponse = response.data.message.content;
+      if (this.llmProvider === 'openai') {
+        // OpenAI API format
+        response = await this.httpClient.post('/chat/completions', {
+          model: this.llmConfig.model,
+          messages: this.conversationHistory,
+          temperature: this.llmConfig.temperature || 0.7,
+          stream: false,
+        });
+        llmResponse = response.data.choices[0].message.content;
+      } else {
+        // Ollama API format (default)
+        response = await this.httpClient.post('/api/chat', {
+          model: this.llmConfig.model,
+          messages: this.conversationHistory,
+          options: {
+            temperature: this.llmConfig.temperature || 0.7,
+          },
+          stream: false,
+        });
+        llmResponse = response.data.message.content;
+      }
 
       if (this.debug) {
         this.tui.showDebug(

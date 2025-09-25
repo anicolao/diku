@@ -41,11 +41,32 @@ async function main() {
     // Only show startup info in dry run mode to avoid interfering with TUI
     if (options.dryRun) {
       console.log('Starting Diku MUD AI Player v0.2.0 (Simplified)');
+      // Determine config format for display
+      let llmInfo;
+      if (config.ollama && !config.llm) {
+        // Legacy config format
+        llmInfo = {
+          provider: 'ollama (legacy config)',
+          baseUrl: config.ollama.baseUrl,
+          model: config.ollama.model
+        };
+      } else if (config.llm) {
+        // New config format
+        const provider = config.llm.provider || 'ollama';
+        const providerConfig = config.llm[provider];
+        llmInfo = {
+          provider: provider,
+          baseUrl: providerConfig.baseUrl,
+          model: providerConfig.model
+        };
+      }
+
       console.log('Configuration:', {
         mudHost: config.mud.host,
         mudPort: config.mud.port,
-        ollamaUrl: config.ollama.baseUrl,
-        model: config.ollama.model
+        llmProvider: llmInfo.provider,
+        llmUrl: llmInfo.baseUrl,
+        model: llmInfo.model
       });
       console.log('DRY RUN MODE: Will not connect to MUD');
       return;

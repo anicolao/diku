@@ -48,9 +48,9 @@ cd diku
 # Install dependencies
 npm install
 
-# Configure Ollama connection
+# Configure LLM connection (Ollama or OpenAI)
 cp config.example.json config.json
-# Edit config.json with your Ollama API settings
+# Edit config.json with your LLM API settings
 
 # Start the AI player
 npm start
@@ -62,13 +62,50 @@ node demo.js
 ## Requirements
 
 - Node.js 18+ 
-- Ollama server running locally or accessible remotely
-- Compatible LLM model (recommended: llama2, codellama, or mistral)
+- LLM provider: Either Ollama server running locally/remotely OR OpenAI API access
+- Compatible LLM model (Ollama: llama2, codellama, mistral; OpenAI: gpt-4, gpt-3.5-turbo)
 - Network access to Arctic MUD (telnet://arctic.org:2700)
 
 ## Configuration
 
-The client can be configured through `config.json`:
+The client supports two LLM providers and can be configured through `config.json`:
+
+### New Configuration Format (Recommended)
+
+```json
+{
+  "llm": {
+    "provider": "ollama",
+    "ollama": {
+      "baseUrl": "http://localhost:11434",
+      "model": "llama2",
+      "temperature": 0.7
+    },
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "model": "gpt-4",
+      "temperature": 0.7,
+      "apiKey": "your-openai-api-key-here"
+    }
+  },
+  "mud": {
+    "host": "arctic.org",
+    "port": 2700
+  },
+  "behavior": {
+    "commandDelayMs": 2000
+  }
+}
+```
+
+### LLM Provider Options
+
+- **Ollama** (default): Set `"provider": "ollama"` to use local Ollama server
+- **OpenAI**: Set `"provider": "openai"` to use OpenAI API (requires valid API key)
+
+### Legacy Configuration (Backward Compatible)
+
+The old configuration format is still supported:
 
 ```json
 {
@@ -91,7 +128,7 @@ The client can be configured through `config.json`:
 
 1. **Connect**: Client establishes telnet connection to Arctic MUD
 2. **Receive**: Raw MUD output is captured
-3. **Send to LLM**: MUD output is sent to Ollama with system prompt
+3. **Send to LLM**: MUD output is sent to configured LLM provider (Ollama or OpenAI)
 4. **Extract Command**: LLM response is parsed for telnet commands
 5. **Execute**: Commands are sent back to the MUD
 6. **Repeat**: Loop continues until session ends
