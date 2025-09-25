@@ -120,10 +120,6 @@ describe('Simplified Diku MUD AI Player', () => {
       // Test <command> block extraction (preferred format)
       const response0 = 'I will create a character.\n\n<command>\nlook\n</command>';
       expect(client.extractCommand(response0)).toBe('look');
-      
-      // Test telnet code block extraction (legacy)
-      const response1 = 'I will create a character.\n\n```telnet\nlook\n```';
-      expect(client.extractCommand(response1)).toBe('look');
 
       // Test regular code block extraction (fallback)
       const response2 = 'Let me examine the area.\n\n```\nexamine room\n```';
@@ -153,22 +149,6 @@ describe('Simplified Diku MUD AI Player', () => {
       const response4 = 'Let me press ENTER.\n\n<command>\nENTER\n</command>';
       expect(client.extractCommand(response4)).toBe('\n');
       
-      // Test partial "e" command (common shorthand)
-      const response5 = 'I will press e for enter.\n\n<command>\ne\n</command>';
-      expect(client.extractCommand(response5)).toBe('\n');
-      
-      // Test partial "en" command
-      const response6 = 'I will press en for enter.\n\n<command>\nen\n</command>';
-      expect(client.extractCommand(response6)).toBe('\n');
-      
-      // Test partial "ent" command
-      const response7 = 'I will press ent for enter.\n\n<command>\nent\n</command>';
-      expect(client.extractCommand(response7)).toBe('\n');
-      
-      // Test partial "ente" command
-      const response8 = 'I will press ente for enter.\n\n<command>\nente\n</command>';
-      expect(client.extractCommand(response8)).toBe('\n');
-      
       // Test that regular commands starting with "e" are not affected
       const response9 = 'I will examine something.\n\n<command>\nexamine table\n</command>';
       expect(client.extractCommand(response9)).toBe('examine table');
@@ -177,9 +157,9 @@ describe('Simplified Diku MUD AI Player', () => {
       const response10 = 'I will exit.\n\n<command>\nexit\n</command>';
       expect(client.extractCommand(response10)).toBe('exit');
       
-      // Test in telnet code blocks
-      const response11 = 'I need to press return.\n\n```telnet\nreturn\n```';
-      expect(client.extractCommand(response11)).toBe('\n');
+      // Test that single "e" is not treated as enter (no partial matches)
+      const response11 = 'I will use e command.\n\n<command>\ne\n</command>';
+      expect(client.extractCommand(response11)).toBe('e');
       
       // Test in regular code blocks
       const response12 = 'I need to press enter.\n\n```\nenter\n```';

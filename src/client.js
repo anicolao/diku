@@ -626,16 +626,10 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     if (commandMatch) {
       command = commandMatch[1].trim();
     } else {
-      // Look for ```telnet code blocks (legacy)
-      const telnetMatch = llmResponse.match(/```telnet\s*\n?(.*?)\n?```/s);
-      if (telnetMatch) {
-        command = telnetMatch[1].trim();
-      } else {
-        // Look for any code block (fallback)
-        const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
-        if (codeMatch) {
-          command = codeMatch[1].trim();
-        }
+      // Look for any code block (fallback)
+      const codeMatch = llmResponse.match(/```\s*\n?(.*?)\n?```/s);
+      if (codeMatch) {
+        command = codeMatch[1].trim();
       }
     }
 
@@ -646,9 +640,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     // Check for literal return/enter commands and convert to newline
     const lowerCommand = command.toLowerCase().trim();
-    if (lowerCommand === 'return' || 
-        lowerCommand === 'enter' || 
-        lowerCommand.startsWith('e') && (lowerCommand === 'e' || lowerCommand === 'en' || lowerCommand === 'ent' || lowerCommand === 'ente')) {
+    if (lowerCommand === 'return' || lowerCommand === 'enter') {
       return '\n';
     }
 
