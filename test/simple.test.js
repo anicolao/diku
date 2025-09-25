@@ -178,11 +178,12 @@ look
       expect(client.systemPrompt).toContain('<command> block');
     });
 
-    test('should include NPC interaction help instructions in system prompt', () => {
+    test('should include keyword-driven command guidance in system prompt', () => {
       client = new MudClient(mockConfig);
+      expect(client.systemPrompt).toContain('KEYWORD-DRIVEN text adventure');
+      expect(client.systemPrompt).toContain('ask girl guide');
+      expect(client.systemPrompt).toContain('ask girl for guide');
       expect(client.systemPrompt).toContain('When interacting with NPCs');
-      expect(client.systemPrompt).toContain("sending them a 'help' command");
-      expect(client.systemPrompt).toContain('Stick to the vocabulary and commands suggested');
     });
 
     test('should handle debug mode', () => {

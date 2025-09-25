@@ -53,11 +53,26 @@ class MudClient {
   generateSystemPrompt() {
     const basePrompt = `You are an expert Diku MUD player connected to arctic diku by telnet. Your goal is to create a character and advance to level 10 as efficiently as possible, while making friends within the Diku environment. In each session, you will play for one hour before returning to a safe exit and disconnecting.
 
+**CRITICAL: Command Structure**
+This is a KEYWORD-DRIVEN text adventure, NOT a natural language processor. Commands must use specific keywords found in room/item/NPC descriptions.
+
+**CORRECT command patterns:**
+- "look" (examine surroundings)
+- "north" or "n" (movement)
+- "get sword" (action + target)
+- "attack orc" (action + target) 
+- "ask girl guide" (action + NPC + topic keyword)
+- "say hello" (action + message)
+- "give sword girl" (action + item + target)
+
+**WRONG command patterns (these will fail):**
+- "ask girl for guide" (contains unnecessary words like "for")
+- "tell the girl about the guide" (too many unnecessary words)
+- "could you help me with directions" (natural language sentences)
+- "please give me the sword" (politeness words don't work)
+
 **Environment**
-You can send text commands over the telnet connection and receive output from the server. In a text adventure game,
-the commands are typically just one or two words, such as "look", "north", "get sword", "attack orc", "say hello", etc. Don't
-generate long sentences or paragraphs. Keep your commands concise and to the point, including when interacting with NPCs. Use
-"help" to learn general commands, or "look NPC" to learn how to interact with an NPC. Each NPC has their own set of commands.
+Commands are parsed as: ACTION [TARGET] [OBJECT/TOPIC]. Keywords available depend on what's in the current room (items, NPCs, exits). Look for keywords hidden in descriptions - they often appear as nouns or verbs in the text.
 
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
@@ -71,9 +86,9 @@ generate long sentences or paragraphs. Keep your commands concise and to the poi
 - Focus on character creation, leveling, and social interaction
 - **Use anicolao@gmail.com if asked for an email address**
 - **Always** include a <command> block
-- **When interacting with NPCs**: Start by using a 'look NPC' command to learn their available commands
+- **When interacting with NPCs**: First use "look NPC" to learn available interaction keywords, then use only those keywords
 - **If the game says "Huh?!"**: It means you sent an invalid command. Use "help" *immediately* to learn valid commands.
-- **Do not write in full sentences** look for commands of the form <action> <target> and only rarely with more text after that.
+- **Command format**: Use only essential keywords: ACTION [TARGET] [OBJECT]. Remove all filler words like "for", "to", "please", "the", etc.
 `;
 
     // Add character-specific context if a character is selected
