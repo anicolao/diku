@@ -276,6 +276,56 @@ look
       // Check that ANSI sequences were stripped from LLM input
       expect(client.sendToLLM).toHaveBeenCalledWith('Hello world! Welcome to Arctic MUD.');
     });
+
+    test('should sanitize problematic characters from MUD output', async () => {
+      client = new MudClient(mockConfig);
+      
+      // Mock sendToLLM to prevent actual LLM calls
+      jest.spyOn(client, 'sendToLLM').mockImplementation(async () => {});
+      
+      // Sample MUD output with problematic characters as mentioned in the issue
+      // Hex: bf ef ef bd bd bf 0d 01 00 0a = invalid UTF-8, CR, SOH, NULL, LF
+      const problematicOutput = Buffer.from([
+        0x48, 0x65, 0x6c, 0x6c, 0x6f, // "Hello"
+        0xbf, 0xef, 0xef, 0xbd, 0xbd, 0xbf, // Invalid UTF-8 sequence
+        0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, // " World"
+        0x0d, // Carriage return
+        0x01, // SOH control character
+        0x00, // NULL character
+        0x21, // "!"
+        0x0a  // Line feed
+      ]);
+      
+      await client.handleMudOutput(problematicOutput);
+      
+      // Check that problematic characters were sanitized
+      // Should remove: invalid UTF-8 replacement chars, CR, SOH, NULL
+      // Should keep: regular text and line feed
+      expect(client.tui.showMudOutput).toHaveBeenCalledWith('Hello World!\n');
+      
+      // Check message history
+      const lastMessage = client.messageHistory[client.messageHistory.length - 1];
+      expect(lastMessage.content).toBe('Hello World!\n');
+      expect(lastMessage.type).toBe('mud_output');
+      
+      // Check LLM input
+      expect(client.sendToLLM).toHaveBeenCalledWith('Hello World!\n');
+    });
+
+    test('should handle carriage return sequences correctly', async () => {
+      client = new MudClient(mockConfig);
+      
+      // Mock sendToLLM to prevent actual LLM calls
+      jest.spyOn(client, 'sendToLLM').mockImplementation(async () => {});
+      
+      // Test different carriage return scenarios
+      const crTestOutput = 'Line 1\r\nLine 2\rLine 3\n';
+      
+      await client.handleMudOutput(Buffer.from(crTestOutput));
+      
+      // Should convert \r\n to \n and remove standalone \r
+      expect(client.tui.showMudOutput).toHaveBeenCalledWith('Line 1\nLine 2Line 3\n');
+    });
   });
 
   describe('Configuration', () => {

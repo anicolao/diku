@@ -9,6 +9,43 @@ const stripAnsi = require("strip-ansi");
 const TUI = require("./tui");
 const CharacterManager = require("./character-manager");
 
+/**
+ * Comprehensive text sanitization for TUI display
+ * Handles ANSI sequences, control characters, invalid UTF-8, and other problematic characters
+ */
+function sanitizeTextForDisplay(rawText) {
+  let text = rawText;
+  
+  // First strip ANSI escape sequences
+  text = stripAnsi(text);
+  
+  // Handle problematic characters that can mess up TUI display:
+  
+  // 1. Replace UTF-8 replacement characters (often from invalid UTF-8 sequences)
+  //    The hex sequence bf ef ef bd bd bf creates these replacement chars
+  text = text.replace(/\uFFFD/g, "");
+  
+  // 2. Remove problematic characters from invalid UTF-8 sequences
+  //    This includes half-width katakana and other chars that appear from corrupted UTF-8
+  //    Remove characters in ranges that commonly appear from invalid UTF-8:
+  //    - Half-width katakana (U+FF61-U+FF9F) 
+  //    - Other problematic ranges
+  text = text.replace(/[\uFF61-\uFF9F]/g, "");
+  
+  // 3. Remove or replace control characters except for newlines and tabs
+  //    Keep: \n (0x0A), \t (0x09)  
+  //    Remove: NULL (0x00), SOH (0x01), STX (0x02), etc.
+  //    Also removes other non-printable characters that might interfere with blessed
+  // eslint-disable-next-line no-control-regex
+  text = text.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, "");
+  
+  // 4. Handle carriage returns - convert \r\n to \n, remove standalone \r
+  text = text.replace(/\r\n/g, "\n");
+  text = text.replace(/\r/g, "");
+  
+  return text;
+}
+
 class MudClient {
   constructor(config, options = {}) {
     this.config = config;
@@ -353,8 +390,8 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   async handleMudOutput(data) {
     const rawOutput = data.toString();
 
-    // Strip ANSI escape sequences from MUD output
-    const output = stripAnsi(rawOutput);
+    // Sanitize text for clean TUI display (handles ANSI, control chars, invalid UTF-8, etc.)
+    const output = sanitizeTextForDisplay(rawOutput);
 
     // Mark that we've received initial data from MUD
     this.initialDataReceived = true;
