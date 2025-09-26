@@ -3,11 +3,11 @@
  * Connects LLM directly to MUD with minimal processing
  */
 
-const net = require('net');
-const axios = require('axios');
-const stripAnsi = require('strip-ansi');
-const TUI = require('./tui');
-const CharacterManager = require('./character-manager');
+const net = require("net");
+const axios = require("axios");
+const stripAnsi = require("strip-ansi");
+const TUI = require("./tui");
+const CharacterManager = require("./character-manager");
 
 class MudClient {
   constructor(config, options = {}) {
@@ -41,7 +41,7 @@ class MudClient {
 
     // Initialize conversation history with system prompt
     this.conversationHistory.push({
-      role: 'system',
+      role: "system",
       content: this.systemPrompt,
     });
 
@@ -56,15 +56,15 @@ class MudClient {
     // Support backward compatibility with old config format
     if (config.ollama && !config.llm) {
       // Legacy config format - use Ollama
-      this.llmProvider = 'ollama';
+      this.llmProvider = "ollama";
       this.llmConfig = config.ollama;
     } else if (config.llm) {
       // New config format
-      this.llmProvider = config.llm.provider || 'ollama';
+      this.llmProvider = config.llm.provider || "ollama";
       this.llmConfig = config.llm[this.llmProvider];
     } else {
       throw new Error(
-        'No LLM configuration found. Please configure either ollama or llm section in config.',
+        "No LLM configuration found. Please configure either ollama or llm section in config.",
       );
     }
 
@@ -77,11 +77,11 @@ class MudClient {
 
     // Setup HTTP client based on provider
     const headers = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
-    if (this.llmProvider === 'openai' && this.llmConfig.apiKey) {
-      headers['Authorization'] = `Bearer ${this.llmConfig.apiKey}`;
+    if (this.llmProvider === "openai" && this.llmConfig.apiKey) {
+      headers["Authorization"] = `Bearer ${this.llmConfig.apiKey}`;
     }
 
     this.httpClient = axios.create({
@@ -257,11 +257,11 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    */
   async start() {
     try {
-      this.tui.updateInputStatus('Connecting to MUD...');
+      this.tui.updateInputStatus("Connecting to MUD...");
       await this.connectToMud();
-      this.tui.showDebug('Connected to MUD, waiting for login banner...');
+      this.tui.showDebug("Connected to MUD, waiting for login banner...");
       this.tui.showLLMStatus({
-        contextInfo: 'Conversation history initialized with system prompt',
+        contextInfo: "Conversation history initialized with system prompt",
       });
 
       // Wait a bit for initial MUD banner/data
@@ -278,11 +278,11 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       if (!this.initialDataReceived) {
         this.tui.showDebug(
-          'No initial data received from MUD, sending minimal initialization prompt to LLM',
+          "No initial data received from MUD, sending minimal initialization prompt to LLM",
         );
         // Send a minimal prompt only if no MUD data was received
         await this.sendToLLM(
-          'Connected to MUD. Waiting for server response...',
+          "Connected to MUD. Waiting for server response...",
         );
       }
       // If initialDataReceived is true, the data was already processed by handleMudOutput
@@ -305,34 +305,34 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         this.socket.setTimeout(3600000); // 1 hour timeout (3600 seconds * 1000ms)
 
         // Set up event handlers before connecting
-        this.socket.on('data', (data) => {
+        this.socket.on("data", (data) => {
           this.handleMudOutput(data);
         });
 
-        this.socket.on('connect', () => {
-          this.tui.showDebug('Raw socket connected to MUD server');
+        this.socket.on("connect", () => {
+          this.tui.showDebug("Raw socket connected to MUD server");
           this.isConnected = true;
           this.tui.updateInputStatus(
-            'Connected to MUD. Waiting for login banner...',
+            "Connected to MUD. Waiting for login banner...",
           );
           resolve();
         });
 
-        this.socket.on('close', () => {
-          this.tui.showDebug('MUD connection closed');
+        this.socket.on("close", () => {
+          this.tui.showDebug("MUD connection closed");
           this.isConnected = false;
         });
 
-        this.socket.on('error', (error) => {
+        this.socket.on("error", (error) => {
           this.tui.showDebug(`MUD connection error: ${error.message}`);
           this.isConnected = false;
           reject(error);
         });
 
-        this.socket.on('timeout', () => {
-          this.tui.showDebug('MUD connection timeout');
+        this.socket.on("timeout", () => {
+          this.tui.showDebug("MUD connection timeout");
           this.socket.destroy();
-          reject(new Error('Connection timeout'));
+          reject(new Error("Connection timeout"));
         });
 
         // Connect to the MUD server
@@ -359,14 +359,14 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     // Mark that we've received initial data from MUD
     this.initialDataReceived = true;
 
-    this.tui.showDebug('Received MUD output, processing...');
+    this.tui.showDebug("Received MUD output, processing...");
 
     // Show MUD output in the TUI main panel
     this.tui.showMudOutput(output);
 
     // Store the output for context
     this.messageHistory.push({
-      type: 'mud_output',
+      type: "mud_output",
       content: output,
       timestamp: new Date(),
     });
@@ -376,7 +376,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     if (this.waitingForMudResponse) {
       this.waitingForMudResponse = false;
       this.tui.showDebug(
-        'Received MUD response after command, processing queued messages...',
+        "Received MUD response after command, processing queued messages...",
       );
 
       // Add current output to the queue and process all together
@@ -390,7 +390,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     // If LLM request is pending, queue this output instead of sending immediately
     if (this.llmRequestPending) {
-      this.tui.showDebug('LLM request pending, queuing MUD output...');
+      this.tui.showDebug("LLM request pending, queuing MUD output...");
       this.mudOutputQueue.push(output);
       return;
     }
@@ -408,17 +408,17 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   async sendToLLM(mudOutput) {
     // Prevent concurrent LLM requests
     if (this.llmRequestPending) {
-      this.tui.showDebug('LLM request already pending, ignoring new request');
+      this.tui.showDebug("LLM request already pending, ignoring new request");
       return;
     }
 
     this.llmRequestPending = true;
-    this.tui.showDebug('🔄 LLM request started');
+    this.tui.showDebug("🔄 LLM request started");
 
     try {
       // Add MUD output to conversation history
       this.conversationHistory.push({
-        role: 'tool',
+        role: "tool",
         content: `${mudOutput}`,
       });
 
@@ -430,7 +430,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         this.tui.showDebug(
           `Sending to LLM: ${this.conversationHistory.length} messages, ${totalTokens} estimated tokens`,
         );
-        const output = this.formatOutput('Latest MUD Output', mudOutput);
+        const output = this.formatOutput("Latest MUD Output", mudOutput);
         this.tui.showDebug(output);
       }
 
@@ -438,20 +438,20 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       let response;
       let llmResponse;
 
-      if (this.llmProvider === 'openai') {
+      if (this.llmProvider === "openai") {
         // OpenAI API format - transform messages for OpenAI compatibility
         const openaiMessages = this.conversationHistory.map((msg) => {
           // OpenAI doesn't support 'tool' role, map it to 'user'
-          if (msg.role === 'tool') {
+          if (msg.role === "tool") {
             return {
-              role: 'user',
+              role: "user",
               content: msg.content,
             };
           }
           return msg;
         });
 
-        response = await this.httpClient.post('/chat/completions', {
+        response = await this.httpClient.post("/chat/completions", {
           model: this.llmConfig.model,
           messages: openaiMessages,
           temperature: this.llmConfig.temperature || 0.7,
@@ -467,7 +467,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         llmResponse = response.data.choices[0].message.content;
       } else {
         // Ollama API format (default)
-        response = await this.httpClient.post('/api/chat', {
+        response = await this.httpClient.post("/api/chat", {
           model: this.llmConfig.model,
           messages: this.conversationHistory,
           options: {
@@ -479,12 +479,12 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       }
 
       if (this.debug) {
-        this.tui.showDebug(this.formatOutput('LLM Response', llmResponse));
+        this.tui.showDebug(this.formatOutput("LLM Response", llmResponse));
       }
 
       // Add LLM response to conversation history
       this.conversationHistory.push({
-        role: 'assistant',
+        role: "assistant",
         content: llmResponse,
       });
 
@@ -502,7 +502,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
           // If a new character was created, set it as current
           if (
-            response.startsWith('OK - Character recorded:') &&
+            response.startsWith("OK - Character recorded:") &&
             !this.currentCharacterId
           ) {
             const characters = this.characterManager.getCharactersList();
@@ -516,16 +516,16 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
           // Send system response back to LLM
           this.conversationHistory.push({
-            role: 'tool',
+            role: "tool",
             content: response,
           });
         }
       }
 
       if (!parsed.command) {
-        parsed.command = '\n';
+        parsed.command = "\n";
         this.tui.showLLMStatus({
-          error: 'No command found, sending newline to continue.',
+          error: "No command found, sending newline to continue.",
         });
       }
 
@@ -538,7 +538,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         await this.sendToMud(parsed.command);
       } else {
         this.tui.showLLMStatus({
-          error: 'No valid command found in LLM response',
+          error: "No valid command found in LLM response",
         });
         if (this.debug) {
           this.tui.showDebug(
@@ -570,8 +570,8 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       });
 
       // Simple fallback - send 'look' command
-      this.tui.showDebug('🔄 Using fallback command: look');
-      await this.sendToMud('look');
+      this.tui.showDebug("🔄 Using fallback command: look");
+      await this.sendToMud("look");
     }
   }
 
@@ -582,7 +582,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     // This should only be called when no LLM request is pending
     if (this.llmRequestPending) {
       this.tui.showDebug(
-        'ERROR: processQueuedMessages called while LLM request is pending',
+        "ERROR: processQueuedMessages called while LLM request is pending",
       );
       return;
     }
@@ -596,7 +596,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     );
 
     // Combine all queued messages into a single message
-    const combinedOutput = this.mudOutputQueue.join('\n');
+    const combinedOutput = this.mudOutputQueue.join("\n");
     this.mudOutputQueue = []; // Clear the queue
 
     // Send the combined output to LLM for processing
@@ -684,7 +684,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         (msg, index) =>
           `${index + 1}. ${msg.role}: ${msg.content.substring(0, 100)}...`,
       )
-      .join('\n');
+      .join("\n");
   }
 
   /**
@@ -727,7 +727,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     if (command) {
       // Validate command is single line
-      const commandLines = command.split('\n').filter((line) => line.trim());
+      const commandLines = command.split("\n").filter((line) => line.trim());
       if (commandLines.length > 1) {
         statusData.error = `REJECTED: Command contains multiple lines: ${command}`;
         this.tui.showLLMStatus(statusData);
@@ -736,7 +736,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       statusData.command = command;
     } else {
-      statusData.error = 'No command found in <command> block or code block';
+      statusData.error = "No command found in <command> block or code block";
     }
 
     this.tui.showLLMStatus(statusData);
@@ -754,8 +754,8 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       // Check for literal return/enter commands and convert to newline
       const lowerCommand = command.toLowerCase().trim();
-      if (lowerCommand === 'return' || lowerCommand === 'enter') {
-        return '\n';
+      if (lowerCommand === "return" || lowerCommand === "enter") {
+        return "\n";
       }
 
       return command;
@@ -770,30 +770,30 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    */
   async sendToMud(command) {
     if (!this.isConnected || !this.socket) {
-      this.tui.showDebug('Cannot send command: not connected to MUD');
+      this.tui.showDebug("Cannot send command: not connected to MUD");
       return;
     }
     // Mark LLM request as completed but don't process queued messages yet
     // We need to wait for the MUD response after sending the command
     try {
       this.llmRequestPending = false;
-      this.tui.showDebug('✅ LLM request completed');
+      this.tui.showDebug("✅ LLM request completed");
       this.waitingForMudResponse = true;
 
       this.tui.showDebug(`🚀 SENDING TO MUD: ${command}`);
 
       // Send command with newline (MUDs expect commands to end with newline)
-      this.socket.write(command + '\n');
+      this.socket.write(command + "\n");
 
       // Store the command for context
       this.messageHistory.push({
-        type: 'command_sent',
+        type: "command_sent",
         content: command,
         timestamp: new Date(),
       });
 
       // Update UI status
-      this.tui.updateInputStatus('Command sent. Waiting for MUD response...');
+      this.tui.updateInputStatus("Command sent. Waiting for MUD response...");
     } catch (error) {
       this.tui.showDebug(`Error sending command to MUD: ${error.message}`);
     }
