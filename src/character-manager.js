@@ -3,15 +3,15 @@
  * Handles character persistence and memory management for the Diku MUD AI Player
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 // Simple UUID v4 generator using crypto
 function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
     const r = crypto.randomBytes(1)[0] % 16;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    const v = c === "x" ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 }
@@ -19,7 +19,7 @@ function generateUUID() {
 class CharacterManager {
   constructor(config) {
     this.config = config;
-    this.dataFile = path.resolve(config.characters?.dataFile || 'characters.json');
+    this.dataFile = path.resolve(config.characters?.dataFile || "characters.json");
     this.backupOnSave = config.characters?.backupOnSave || true;
     this.characters = {};
     
@@ -32,7 +32,7 @@ class CharacterManager {
   loadCharacters() {
     try {
       if (fs.existsSync(this.dataFile)) {
-        const data = fs.readFileSync(this.dataFile, 'utf8');
+        const data = fs.readFileSync(this.dataFile, "utf8");
         const parsed = JSON.parse(data);
         
         // Handle both array and object formats for backwards compatibility
@@ -64,7 +64,7 @@ class CharacterManager {
         fs.copyFileSync(this.dataFile, backupFile);
       }
 
-      fs.writeFileSync(this.dataFile, JSON.stringify(this.characters, null, 2), 'utf8');
+      fs.writeFileSync(this.dataFile, JSON.stringify(this.characters, null, 2), "utf8");
       return true;
     } catch (error) {
       console.error(`Error saving characters to ${this.dataFile}: ${error.message}`);
@@ -80,8 +80,8 @@ class CharacterManager {
       id: char.characterId,
       name: char.name,
       level: char.level || 1,
-      class: char.class || 'unknown',
-      race: char.race || 'unknown'
+      class: char.class || "unknown",
+      race: char.race || "unknown"
     }));
   }
 
@@ -105,19 +105,19 @@ class CharacterManager {
       const characterData = JSON.parse(match[1].trim());
       
       // Validate required fields
-      if (!characterData.name || typeof characterData.name !== 'string') {
-        return { error: 'Character name is required and must be a string' };
+      if (!characterData.name || typeof characterData.name !== "string") {
+        return { error: "Character name is required and must be a string" };
       }
 
       // Create character with UUID
       const character = {
         characterId: generateUUID(),
         name: characterData.name,
-        password: characterData.password || '',
-        class: characterData.class || 'unknown',
-        race: characterData.race || 'unknown',
+        password: characterData.password || "",
+        class: characterData.class || "unknown",
+        race: characterData.race || "unknown",
         level: characterData.level || 1,
-        location: characterData.location || 'unknown',
+        location: characterData.location || "unknown",
         keyMemories: [],
         createdAt: new Date().toISOString(),
         lastPlayed: new Date().toISOString()
@@ -128,7 +128,7 @@ class CharacterManager {
       if (this.saveCharacters()) {
         return { success: true, character };
       } else {
-        return { error: 'Failed to save character data' };
+        return { error: "Failed to save character data" };
       }
 
     } catch (error) {
@@ -148,26 +148,26 @@ class CharacterManager {
 
       const character = this.characters[characterId];
       if (!character) {
-        return { error: 'Character not found' };
+        return { error: "Character not found" };
       }
 
       const memoryData = JSON.parse(match[1].trim());
       
       // Validate memory data
-      if (!memoryData.summary || typeof memoryData.summary !== 'string') {
-        return { error: 'Memory summary is required and must be a string' };
+      if (!memoryData.summary || typeof memoryData.summary !== "string") {
+        return { error: "Memory summary is required and must be a string" };
       }
 
       // Validate memory type
-      const validTypes = ['level_up', 'social', 'combat', 'exploration', 'quest'];
+      const validTypes = ["level_up", "social", "combat", "exploration", "quest"];
       if (memoryData.type && !validTypes.includes(memoryData.type)) {
-        return { error: `Invalid memory type. Must be one of: ${validTypes.join(', ')}` };
+        return { error: `Invalid memory type. Must be one of: ${validTypes.join(", ")}` };
       }
 
       // Add memory to character
       const memory = {
         summary: memoryData.summary,
-        type: memoryData.type || 'exploration',
+        type: memoryData.type || "exploration",
         details: memoryData.details || {},
         timestamp: new Date().toISOString()
       };
@@ -191,7 +191,7 @@ class CharacterManager {
       if (this.saveCharacters()) {
         return { success: true };
       } else {
-        return { error: 'Failed to save memory data' };
+        return { error: "Failed to save memory data" };
       }
 
     } catch (error) {
@@ -211,7 +211,7 @@ class CharacterManager {
     const recentMemories = character.keyMemories
       .slice(-5) // Get last 5 memories
       .map(memory => `- ${memory.summary}`)
-      .join('\n');
+      .join("\n");
 
     return {
       name: character.name,
@@ -248,7 +248,7 @@ class CharacterManager {
       const memoryResult = this.parseRecordMemory(llmResponse, characterIdForMemory);
       if (memoryResult !== null) {
         if (memoryResult.success) {
-          responses.push('OK - Memory recorded');
+          responses.push("OK - Memory recorded");
         } else {
           responses.push(`ERROR - ${memoryResult.error}`);
         }
