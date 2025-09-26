@@ -170,6 +170,8 @@ Monitor these values carefully to track your character's condition and plan acti
 - Read the MUD output carefully and respond appropriately
 - **Use anicolao@gmail.com if asked for an email address**
 - **Always** include a <command> block
+- **PAGER PROMPTS**: If you see prompts with options in brackets like "[press return for more; q to quit]", these are PAGER prompts, not game prompts. For pager prompts, only use the options shown in the brackets (like "return" or "q"). Normal game commands should ONLY be used when the prompt ends with ">" symbol.
+- **PAGER COMMANDS**: When facing a pager prompt, use <command>return</command> to see more content or <command>q</command> to quit the pager. You can also disable pager permanently by checking the help system for pager settings.
 - **When interacting with NPCs**: Start by using a 'look NPC' command to learn their available commands
 - **If the game says "Huh?!"**: It means you sent an invalid command. Use "help" *immediately* to learn valid commands.
 - **Do not write in full sentences** look for commands of the form <action> <target> and only rarely with more text after that.
@@ -756,6 +758,11 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       const lowerCommand = command.toLowerCase().trim();
       if (lowerCommand === "return" || lowerCommand === "enter") {
         return "\n";
+      }
+
+      // Handle pager quit command
+      if (lowerCommand === "q") {
+        return "q";
       }
 
       return command;
