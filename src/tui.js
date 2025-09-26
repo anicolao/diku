@@ -58,11 +58,11 @@ class TUI {
    * Initialize the blessed screen and create UI layout
    */
   initializeScreen() {
-    // Force color support and create main screen with blue background everywhere
+    // Create main screen with better terminal compatibility
     this.screen = blessed.screen({
       smartCSR: true,
       title: "Diku MUD AI Player",
-      fullUnicode: true,
+      fullUnicode: false, // Disable fullUnicode to avoid fallback characters
       dockBorders: true,
       warnings: false,
       autoPadding: true,
@@ -78,12 +78,10 @@ class TUI {
       this.screen.tput.colors = 256;
     }
 
-    // Force proper box character support
-    if (!this.screen.tput.unicode || this.screen.tput.brokenACS) {
-      // If Unicode or ACS is broken, disable it to prevent garbage characters
-      this.screen.tput.unicode = false;
-      this.screen.tput.brokenACS = false;
-    }
+    // Improve box character compatibility
+    // Force ASCII mode for better compatibility across terminals
+    this.screen.tput.unicode = false;
+    this.screen.tput.brokenACS = false;
 
     // Create a full-screen background element to ensure complete blue coverage
     this.backgroundElement = blessed.box({
@@ -322,10 +320,20 @@ class TUI {
   sanitizeContent(text) {
     if (!text) return text;
     
-    return text
-      // Remove control characters except newlines and tabs
-      // Using character codes to avoid ESLint no-control-regex warning
-      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    // Remove control characters using a whitelist approach instead
+    let result = text
+      // First normalize line endings
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n");
+    
+    // Remove non-printable characters except newlines and tabs
+    result = result.split("").filter(char => {
+      const code = char.charCodeAt(0);
+      // Allow newlines (10), tabs (9), and printable ASCII (32-126)
+      return code === 9 || code === 10 || (code >= 32 && code <= 126) || code > 126;
+    }).join("");
+    
+    return result
       // Escape blessed.js markup characters by wrapping them
       .replace(/\{/g, "{{")
       .replace(/\}/g, "}}")
