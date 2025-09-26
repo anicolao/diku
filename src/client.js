@@ -21,7 +21,7 @@ class MudClient {
     this.messageHistory = [];
 
     // Initialize TUI
-    this.tui = new TUI();
+    this.tui = new TUI(this.config.behavior);
 
     // Initialize character management
     this.characterManager = new CharacterManager(config);
@@ -137,6 +137,7 @@ descriptions, or in the game help for global commands. **Read the Help**.
 - "tell the girl about the guide" (too many unnecessary words)
 - "could you help me with directions" (natural language sentences)
 - "please give me the sword" (politeness words don't work)
+- "ne" "nw" or any other non-compass point direction (**only** N, S, E, W, U, D are valid)
 
 **Environment**
 Commands are parsed as: ACTION [TARGET] [OBJECT/TOPIC]. Keywords
@@ -155,7 +156,7 @@ This status line contains crucial information:
 - **%** = Progress to Next Level - percentage complete to next level (e.g., 0.00%)
 - **C** = Coins - money/currency you are carrying
 - **T:** = Time to Next Tick - seconds until next game tick/update
-- **Exits:** = Visible Exits - available directions (N=North, S=South, E=East, W=West, U=Up, D=Down)
+- **Exits:** = Visible Exits **ONE LETTER PER DIRECTION** - available directions (N=North, S=South, E=East, W=West, U=Up, D=Down)
 
 Monitor these values carefully to track your character's condition and plan actions accordingly.
 
@@ -172,6 +173,14 @@ Monitor these values carefully to track your character's condition and plan acti
 - **When interacting with NPCs**: Start by using a 'look NPC' command to learn their available commands
 - **If the game says "Huh?!"**: It means you sent an invalid command. Use "help" *immediately* to learn valid commands.
 - **Do not write in full sentences** look for commands of the form <action> <target> and only rarely with more text after that.
+- **exa corpse** to see if there are any items you can get
+- **OFTEN USED** **cons target** to assess the difficulty in killing a target
+- **OFTEN USED** **get all corpse** to loot a corpse
+- **Directions are square compass points N, S, E, W, U, D** NE, NW, etc are almost **never valid**.
+- **Never insist on giving a failed command twice.**
+- **list** to list the items for sale in a shop
+- **rent** to save your items when you quit, at a receptionist/inn
+- **Eat or drink when you are hungry or thirsty**. Check inventory for food/water.
 `;
 
     // Add character-specific context if a character is selected
@@ -259,13 +268,18 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       // If no data arrives within reasonable time, send a minimal prompt
       const maxWaitTime = 5000; // 5 seconds
       const waitStart = Date.now();
-      
-      while (!this.initialDataReceived && (Date.now() - waitStart) < maxWaitTime) {
+
+      while (
+        !this.initialDataReceived &&
+        Date.now() - waitStart < maxWaitTime
+      ) {
         await this.sleep(100);
       }
-      
+
       if (!this.initialDataReceived) {
-        this.tui.showDebug('No initial data received from MUD, sending minimal initialization prompt to LLM');
+        this.tui.showDebug(
+          'No initial data received from MUD, sending minimal initialization prompt to LLM',
+        );
         // Send a minimal prompt only if no MUD data was received
         await this.sendToLLM(
           'Connected to MUD. Waiting for server response...',
@@ -285,44 +299,47 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     return new Promise((resolve, reject) => {
       try {
         this.initialDataReceived = false;
-        
+
         // Create raw TCP socket connection
         this.socket = new net.Socket();
         this.socket.setTimeout(3600000); // 1 hour timeout (3600 seconds * 1000ms)
-        
+
         // Set up event handlers before connecting
         this.socket.on('data', (data) => {
           this.handleMudOutput(data);
         });
-        
+
         this.socket.on('connect', () => {
           this.tui.showDebug('Raw socket connected to MUD server');
           this.isConnected = true;
-          this.tui.updateInputStatus('Connected to MUD. Waiting for login banner...');
+          this.tui.updateInputStatus(
+            'Connected to MUD. Waiting for login banner...',
+          );
           resolve();
         });
-        
+
         this.socket.on('close', () => {
           this.tui.showDebug('MUD connection closed');
           this.isConnected = false;
         });
-        
+
         this.socket.on('error', (error) => {
           this.tui.showDebug(`MUD connection error: ${error.message}`);
           this.isConnected = false;
           reject(error);
         });
-        
+
         this.socket.on('timeout', () => {
           this.tui.showDebug('MUD connection timeout');
           this.socket.destroy();
           reject(new Error('Connection timeout'));
         });
-        
+
         // Connect to the MUD server
-        this.tui.showDebug(`Connecting to ${this.config.mud.host}:${this.config.mud.port}...`);
+        this.tui.showDebug(
+          `Connecting to ${this.config.mud.host}:${this.config.mud.port}...`,
+        );
         this.socket.connect(this.config.mud.port, this.config.mud.host);
-        
       } catch (error) {
         this.tui.showDebug(`Failed to connect to MUD: ${error.message}`);
         reject(error);
@@ -335,7 +352,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    */
   async handleMudOutput(data) {
     const rawOutput = data.toString();
-    
+
     // Strip ANSI escape sequences from MUD output
     const output = stripAnsi(rawOutput);
 
@@ -354,12 +371,14 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       timestamp: new Date(),
     });
 
-    // If we were waiting for MUD response after sending a command, 
+    // If we were waiting for MUD response after sending a command,
     // now we can process any queued messages
     if (this.waitingForMudResponse) {
       this.waitingForMudResponse = false;
-      this.tui.showDebug('Received MUD response after command, processing queued messages...');
-      
+      this.tui.showDebug(
+        'Received MUD response after command, processing queued messages...',
+      );
+
       // Add current output to the queue and process all together
       if (this.mudOutputQueue.length > 0) {
         this.mudOutputQueue.push(output);
@@ -516,7 +535,6 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
           `✅ Ready to send command to MUD: ${parsed.command}`,
         );
         this.tui.showMudInput(parsed.command);
-        this.waitingForMudResponse = true;
         await this.sendToMud(parsed.command);
       } else {
         this.tui.showLLMStatus({
@@ -553,13 +571,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       // Simple fallback - send 'look' command
       this.tui.showDebug('🔄 Using fallback command: look');
-      this.waitingForMudResponse = true;
       await this.sendToMud('look');
-    } finally {
-      // Mark LLM request as completed but don't process queued messages yet
-      // We need to wait for the MUD response after sending the command
-      this.llmRequestPending = false;
-      this.tui.showDebug('✅ LLM request completed');
     }
   }
 
@@ -569,7 +581,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   async processQueuedMessages() {
     // This should only be called when no LLM request is pending
     if (this.llmRequestPending) {
-      this.tui.showDebug('ERROR: processQueuedMessages called while LLM request is pending');
+      this.tui.showDebug(
+        'ERROR: processQueuedMessages called while LLM request is pending',
+      );
       return;
     }
 
@@ -577,7 +591,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       return;
     }
 
-    this.tui.showDebug(`Processing ${this.mudOutputQueue.length} queued MUD messages...`);
+    this.tui.showDebug(
+      `Processing ${this.mudOutputQueue.length} queued MUD messages...`,
+    );
 
     // Combine all queued messages into a single message
     const combinedOutput = this.mudOutputQueue.join('\n');
@@ -735,13 +751,13 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     const commandMatch = llmResponse.match(/<command>\s*(.*?)\s*<\/command>/s);
     if (commandMatch) {
       const command = commandMatch[1].trim();
-      
+
       // Check for literal return/enter commands and convert to newline
       const lowerCommand = command.toLowerCase().trim();
       if (lowerCommand === 'return' || lowerCommand === 'enter') {
         return '\n';
       }
-      
+
       return command;
     }
 
@@ -757,8 +773,13 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       this.tui.showDebug('Cannot send command: not connected to MUD');
       return;
     }
-
+    // Mark LLM request as completed but don't process queued messages yet
+    // We need to wait for the MUD response after sending the command
     try {
+      this.llmRequestPending = false;
+      this.tui.showDebug('✅ LLM request completed');
+      this.waitingForMudResponse = true;
+
       this.tui.showDebug(`🚀 SENDING TO MUD: ${command}`);
 
       // Send command with newline (MUDs expect commands to end with newline)
@@ -773,9 +794,6 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       // Update UI status
       this.tui.updateInputStatus('Command sent. Waiting for MUD response...');
-
-      // Add a small delay to avoid flooding
-      await this.sleep(this.config.behavior?.commandDelayMs || 2000);
     } catch (error) {
       this.tui.showDebug(`Error sending command to MUD: ${error.message}`);
     }

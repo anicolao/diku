@@ -8,7 +8,8 @@ const fs = require('fs');
 const path = require('path');
 
 class TUI {
-  constructor() {
+  constructor(behavior) {
+    this.behavior = behavior;
     this.screen = null;
     this.mudPanel = null;
     this.statusPanel = null;
@@ -381,6 +382,18 @@ class TUI {
     return new Promise((resolve) => {
       this.waitingForApproval = true;
       this.approvalCallback = resolve;
+
+      // Approve after a small delay to avoid flooding
+      const ms = this.behavior?.commandDelayMs || 2000;
+      this.showDebug(`Auto-approving in ${ms / 1000} seconds...`);
+      setTimeout(() => {
+        if (this.approvalCallback === resolve) {
+          this.showDebug('Auto-approved.');
+          this.approvalCallback();
+          this.approvalCallback = null;
+          this.waitingForApproval = false;
+        }
+      }, ms);
 
       // Log to file
       this.writeToLog('input', `APPROVAL REQUIRED: ${message}`);
