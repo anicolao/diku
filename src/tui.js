@@ -65,6 +65,8 @@ class TUI {
       fullUnicode: true,
       dockBorders: true,
       warnings: false,
+      autoPadding: true,
+      ignoreLocked: ["C-c"], // Allow Ctrl+C to always work
       style: {
         bg: "blue",
         fg: "white",
@@ -74,6 +76,13 @@ class TUI {
     // Force color mode if terminal doesn't detect it properly
     if (this.screen.tput.colors < 256) {
       this.screen.tput.colors = 256;
+    }
+
+    // Force proper box character support
+    if (!this.screen.tput.unicode || this.screen.tput.brokenACS) {
+      // If Unicode or ACS is broken, disable it to prevent garbage characters
+      this.screen.tput.unicode = false;
+      this.screen.tput.brokenACS = false;
     }
 
     // Create a full-screen background element to ensure complete blue coverage
@@ -308,6 +317,28 @@ class TUI {
   }
 
   /**
+   * Sanitize content for blessed.js to prevent garbage characters
+   */
+  sanitizeContent(text) {
+    if (!text) return text;
+    
+    return text
+      // Remove control characters except newlines and tabs
+      // Using character codes to avoid ESLint no-control-regex warning
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+      // Escape blessed.js markup characters by wrapping them
+      .replace(/\{/g, "{{")
+      .replace(/\}/g, "}}")
+      // Normalize whitespace - replace multiple spaces/tabs with single space
+      .replace(/[ \t]+/g, " ")
+      // Limit line length to prevent wrapping issues (blessed.js can have issues with very long lines)
+      .split("\n")
+      .map(line => line.length > 200 ? line.substring(0, 197) + "..." : line)
+      .join("\n")
+      .trim();
+  }
+
+  /**
    * Display LLM status, plans, and reasoning
    */
   showLLMStatus(data) {
@@ -318,28 +349,33 @@ class TUI {
     let logContent = "";
 
     if (data.contextInfo) {
-      content += `{cyan-fg}💭 ${data.contextInfo}{/cyan-fg}\n`;
-      logContent += `💭 ${data.contextInfo}\n`;
+      const sanitized = this.sanitizeContent(data.contextInfo);
+      content += `{cyan-fg}💭 ${sanitized}{/cyan-fg}\n`;
+      logContent += `💭 ${data.contextInfo}\n`; // Log original content
     }
 
     if (data.plan) {
-      content += `{yellow-fg}📋 Plan:{/yellow-fg} ${data.plan}\n`;
-      logContent += `📋 Plan: ${data.plan}\n`;
+      const sanitized = this.sanitizeContent(data.plan);
+      content += `{yellow-fg}📋 Plan:{/yellow-fg} ${sanitized}\n`;
+      logContent += `📋 Plan: ${data.plan}\n`; // Log original content
     }
 
     if (data.nextStep) {
-      content += `{green-fg}➡️  Next Step:{/green-fg} ${data.nextStep}\n`;
-      logContent += `➡️  Next Step: ${data.nextStep}\n`;
+      const sanitized = this.sanitizeContent(data.nextStep);
+      content += `{green-fg}➡️  Next Step:{/green-fg} ${sanitized}\n`;
+      logContent += `➡️  Next Step: ${data.nextStep}\n`; // Log original content
     }
 
     if (data.command) {
-      content += `{white-fg}🎮 Command:{/white-fg} ${data.command}\n`;
-      logContent += `🎮 Command: ${data.command}\n`;
+      const sanitized = this.sanitizeContent(data.command);
+      content += `{white-fg}🎮 Command:{/white-fg} ${sanitized}\n`;
+      logContent += `🎮 Command: ${data.command}\n`; // Log original content
     }
 
     if (data.error) {
-      content += `{red-fg}❌ Error:{/red-fg} ${data.error}\n`;
-      logContent += `❌ Error: ${data.error}\n`;
+      const sanitized = this.sanitizeContent(data.error);
+      content += `{red-fg}❌ Error:{/red-fg} ${sanitized}\n`;
+      logContent += `❌ Error: ${data.error}\n`; // Log original content
     }
 
     content += "\n";
