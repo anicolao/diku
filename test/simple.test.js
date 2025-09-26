@@ -160,6 +160,14 @@ describe('Simplified Diku MUD AI Player', () => {
       // Test that single "e" is not treated as enter (no partial matches)
       const response11 = 'I will use e command.\n\n<command>\ne\n</command>';
       expect(client.extractCommand(response11)).toBe('e');
+      
+      // Test literal "q" command for pager quit
+      const response12 = 'I need to quit the pager.\n\n<command>\nq\n</command>';
+      expect(client.extractCommand(response12)).toBe('q');
+      
+      // Test case insensitive "Q" command
+      const response13 = 'I need to quit the pager.\n\n<command>\nQ\n</command>';
+      expect(client.extractCommand(response13)).toBe('q');
     });
 
     test('should reject multi-line commands', () => {
@@ -247,6 +255,15 @@ look
       expect(client.systemPrompt).toContain('T:** = Time to Next Tick');
       expect(client.systemPrompt).toContain('Exits:** = Visible Exits');
       expect(client.systemPrompt).toContain('N=North, S=South, E=East, W=West, U=Up, D=Down');
+    });
+
+    test('should include pager prompt handling instructions in system prompt', () => {
+      client = new MudClient(mockConfig);
+      expect(client.systemPrompt).toContain('PAGER PROMPTS');
+      expect(client.systemPrompt).toContain('prompts with options in brackets like "[press return for more; q to quit]"');
+      expect(client.systemPrompt).toContain('prompt ends with ">" symbol');
+      expect(client.systemPrompt).toContain('PAGER COMMANDS');
+      expect(client.systemPrompt).toContain('use <command>return</command> to see more content or <command>q</command> to quit');
     });
 
     test('should handle debug mode', () => {
