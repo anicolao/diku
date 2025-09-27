@@ -468,12 +468,16 @@ class CharacterManager {
           const shortDir = directionMap[direction];
           if (shortDir) {
             exits.push(shortDir);
-            // Generate destination room ID from name
-            const destinationId = destinationName.toLowerCase().replace(/[^a-z0-9]/g, "_");
-            exitConnections[shortDir] = {
-              roomId: destinationId,
-              roomName: destinationName
-            };
+            
+            // Skip creating connections for dark rooms - handle them with fallback movement tracking
+            if (destinationName !== "Too dark to tell") {
+              // Generate destination room ID from name
+              const destinationId = destinationName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+              exitConnections[shortDir] = {
+                roomId: destinationId,
+                roomName: destinationName
+              };
+            }
           }
         }
       }

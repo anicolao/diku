@@ -294,6 +294,42 @@ Down  - Solace Square
       expect(character.roomMap["climbing_a_huge_vallenwood_tree"]).toBeDefined();
       expect(character.roomMap["climbing_a_huge_vallenwood_tree"].name).toBe("Climbing a Huge Vallenwood Tree");
     });
+
+    test("should handle 'Too dark to tell' exits without creating connections", () => {
+      const character = characterManager.getCharacter(testCharacterId);
+      const darkExitsOutput = `
+Mysterious Room
+    This room is dimly lit with shadows in every corner.
+
+42H 85V 1200X 2.1% 15C T:20 Exits:NESW> exits
+Obvious exits:
+North - Bright Corridor
+East  - The Eastern Chamber
+South - Too dark to tell
+West  - Western Hallway
+      `;
+
+      characterManager.updateRoomMap(character, darkExitsOutput);
+
+      const roomId = "mysterious_room";
+      const room = character.roomMap[roomId];
+      
+      expect(room).toBeDefined();
+      expect(room.name).toBe("Mysterious Room");
+      expect(room.exits).toEqual(["N", "E", "S", "W"]);
+      
+      // Check that South exit exists but has no connection due to darkness
+      expect(room.exits).toContain("S");
+      expect(room.connections["S"]).toBeUndefined();
+      
+      // Check that other exits have proper connections
+      expect(room.connections["N"]).toBe("bright_corridor");
+      expect(room.connections["E"]).toBe("the_eastern_chamber");
+      expect(room.connections["W"]).toBe("western_hallway");
+      
+      // Verify no "too_dark_to_tell" room was created
+      expect(character.roomMap["too_dark_to_tell"]).toBeUndefined();
+    });
   });
 
   describe("Path Memory", () => {
