@@ -221,6 +221,7 @@ Monitor these values carefully to track your character's condition and plan acti
 - **Create mental maps** by remembering connections between rooms
 - **Record important paths** in your memory for future navigation
 - **Use descriptive room features** to distinguish similar areas
+- **Rent at the receptionist/inn** From Solace Square, the path is U W W N N U
 
 **Navigation Helper Commands**
 - **Use \`/point <destination>\` to get the next step** to reach a location you've visited before
