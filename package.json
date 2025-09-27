@@ -32,9 +32,8 @@
   "dependencies": {
     "axios": "^1.6.0",
     "commander": "^11.0.0",
-    "strip-ansi": "^6.0.1",
-    "telnet-client": "^1.4.0",
-    "terminal-kit": "^3.1.2"
+    "neo-neo-bblessed": "^1.0.9",
+    "telnet-client": "^1.4.0"
   },
   "devDependencies": {
     "eslint": "^8.57.1",
