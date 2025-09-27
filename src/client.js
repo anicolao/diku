@@ -15,34 +15,37 @@ const CharacterManager = require("./character-manager");
  */
 function sanitizeTextForDisplay(rawText) {
   let text = rawText;
-  
+
   // First strip ANSI escape sequences
   text = stripAnsi(text);
-  
+
   // Handle problematic characters that can mess up TUI display:
-  
+
   // 1. Replace UTF-8 replacement characters (often from invalid UTF-8 sequences)
   //    The hex sequence bf ef ef bd bd bf creates these replacement chars
   text = text.replace(/\uFFFD/g, "");
-  
+
   // 2. Remove problematic characters from invalid UTF-8 sequences
   //    This includes half-width katakana and other chars that appear from corrupted UTF-8
   //    Remove characters in ranges that commonly appear from invalid UTF-8:
-  //    - Half-width katakana (U+FF61-U+FF9F) 
+  //    - Half-width katakana (U+FF61-U+FF9F)
   //    - Other problematic ranges
   text = text.replace(/[\uFF61-\uFF9F]/g, "");
-  
+
   // 3. Remove or replace control characters except for newlines and tabs
-  //    Keep: \n (0x0A), \t (0x09)  
+  //    Keep: \n (0x0A), \t (0x09)
   //    Remove: NULL (0x00), SOH (0x01), STX (0x02), etc.
   //    Also removes other non-printable characters that might interfere with blessed
   // eslint-disable-next-line no-control-regex
-  text = text.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, "");
-  
+  text = text.replace(
+    /[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g,
+    "",
+  );
+
   // 4. Handle carriage returns - convert \r\n to \n, remove standalone \r
   text = text.replace(/\r\n/g, "\n");
   text = text.replace(/\r/g, "");
-  
+
   return text;
 }
 
@@ -72,9 +75,9 @@ class MudClient {
     this.llmRequestPending = false;
     this.mudOutputQueue = [];
     this.waitingForMudResponse = false;
-    
+
     // Pathfinding tracking
-    this.lastMovementCommand = null;  // Track the last movement command sent
+    this.lastMovementCommand = null; // Track the last movement command sent
 
     // Generate system prompt based on character selection
     this.systemPrompt = this.generateSystemPrompt();
@@ -442,17 +445,18 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     // Track movement results for pathfinding if we just sent a movement command
     if (this.lastMovementCommand && this.currentCharacterId) {
-      const success = !output.toLowerCase().includes("you can't go that way") && 
-                     !output.toLowerCase().includes("alas, you cannot") &&
-                     !output.toLowerCase().includes("you cannot");
-      
+      const success =
+        !output.toLowerCase().includes("you can't go that way") &&
+        !output.toLowerCase().includes("alas, you cannot") &&
+        !output.toLowerCase().includes("you cannot");
+
       this.characterManager.recordMovement(
-        this.currentCharacterId, 
-        this.lastMovementCommand.direction, 
-        output, 
-        success
+        this.currentCharacterId,
+        this.lastMovementCommand.direction,
+        output,
+        success,
       );
-      
+
       // Clear the movement command after processing
       this.lastMovementCommand = null;
     }
@@ -867,7 +871,12 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
     // Intercept navigation helper commands
     const trimmedCommand = command.trim();
-    if (trimmedCommand.startsWith("/point ") || trimmedCommand.startsWith("/wayfind ")) {
+    if (
+      trimmedCommand.startsWith("/point ") ||
+      trimmedCommand.startsWith("/wayfind ")
+    ) {
+      this.llmRequestPending = false;
+      this.tui.showDebug("✅ LLM request completed");
       await this.handleNavigationCommand(trimmedCommand);
       return;
     }
@@ -884,7 +893,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       if (isMovementCommand) {
         this.lastMovementCommand = {
           direction: command.trim().toUpperCase(),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       }
 
@@ -911,7 +920,20 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    * Check if a command is a movement command
    */
   isMovementCommand(command) {
-    const movementCommands = ["N", "S", "E", "W", "U", "D", "NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN"];
+    const movementCommands = [
+      "N",
+      "S",
+      "E",
+      "W",
+      "U",
+      "D",
+      "NORTH",
+      "SOUTH",
+      "EAST",
+      "WEST",
+      "UP",
+      "DOWN",
+    ];
     return movementCommands.includes(command.toUpperCase());
   }
 
@@ -920,7 +942,8 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
    */
   async handleNavigationCommand(command) {
     if (!this.currentCharacterId) {
-      const response = "Navigation commands require a character to be selected.";
+      const response =
+        "Navigation commands require a character to be selected.";
       this.tui.showMudOutput(response);
       await this.sendToLLM(response);
       return;
@@ -942,15 +965,20 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     try {
       let response;
       if (commandType === "/point") {
-        response = this.characterManager.findNextStep(this.currentCharacterId, destination);
+        response = this.characterManager.findNextStep(
+          this.currentCharacterId,
+          destination,
+        );
       } else if (commandType === "/wayfind") {
-        response = this.characterManager.findFullPath(this.currentCharacterId, destination);
+        response = this.characterManager.findFullPath(
+          this.currentCharacterId,
+          destination,
+        );
       }
 
       // Show the navigation result to both TUI and send to LLM
       this.tui.showMudOutput(response);
       await this.sendToLLM(response);
-
     } catch (error) {
       const errorResponse = `Navigation error: ${error.message}`;
       this.tui.showDebug(errorResponse);
