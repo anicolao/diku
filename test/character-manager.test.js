@@ -238,4 +238,166 @@ Let me continue exploring.`;
       expect(result.error).toContain('Invalid memory type');
     });
   });
+
+  describe('Backup Rotation System', () => {
+    let backupManager;
+    
+    beforeEach(() => {
+      const backupConfig = {
+        characters: {
+          dataFile: testDataFile,
+          backupOnSave: true  // Enable backups for these tests
+        }
+      };
+      backupManager = new CharacterManager(backupConfig);
+    });
+
+    afterEach(() => {
+      // Clean up numbered backup files (.1, .2, ..., .9)
+      for (let i = 1; i <= 9; i++) {
+        const backupFile = `${testDataFile}.${i}`;
+        if (fs.existsSync(backupFile)) {
+          fs.unlinkSync(backupFile);
+        }
+      }
+    });
+
+    test('should create .1 backup on first save', () => {
+      // Create initial data file to backup
+      const initialData = { existing: 'data' };
+      fs.writeFileSync(testDataFile, JSON.stringify(initialData, null, 2));
+      
+      // Create and save a character (parseNewCharacter calls saveCharacters internally)
+      const createResponse = `<new-character>
+{
+  "name": "BackupTest",
+  "class": "warrior", 
+  "race": "human",
+  "password": "test123"
+}
+</new-character>`;
+      
+      backupManager.parseNewCharacter(createResponse);
+      
+      // Check that .1 backup was created (should contain the initial data)
+      const backup1 = `${testDataFile}.1`;
+      expect(fs.existsSync(backup1)).toBe(true);
+      expect(fs.existsSync(`${testDataFile}.2`)).toBe(false);
+      
+      // Verify backup contains the initial data that was backed up
+      const backupContent = JSON.parse(fs.readFileSync(backup1, 'utf8'));
+      expect(backupContent.existing).toBe('data');
+    });
+
+    test('should rotate backups correctly (.1 -> .2, new -> .1)', () => {
+      // Create initial data file
+      const initialData = { test: 'initial' };
+      fs.writeFileSync(testDataFile, JSON.stringify(initialData, null, 2));
+      
+      // First save creates .1
+      backupManager.saveCharacters();
+      expect(fs.existsSync(`${testDataFile}.1`)).toBe(true);
+      
+      // Modify data and save again
+      backupManager.characters = { test: 'modified' };
+      backupManager.saveCharacters();
+      
+      // Check rotation: old .1 should now be .2, new data backed up as .1
+      expect(fs.existsSync(`${testDataFile}.1`)).toBe(true);
+      expect(fs.existsSync(`${testDataFile}.2`)).toBe(true);
+      
+      // Verify contents - .2 should have initial data, .1 should have previous save
+      const backup2Content = JSON.parse(fs.readFileSync(`${testDataFile}.2`, 'utf8'));
+      expect(backup2Content.test).toBe('initial');
+    });
+
+    test('should limit backups to 9 files and discard oldest', () => {
+      // Create 10 different data versions and save them
+      for (let i = 0; i <= 10; i++) {
+        // Write the data file first, then save to create backup
+        fs.writeFileSync(testDataFile, JSON.stringify({ version: i }, null, 2));
+        backupManager.characters = { version: i };
+        backupManager.saveCharacters();
+      }
+      
+      // Should have backups .1 through .9, but not .10
+      expect(fs.existsSync(`${testDataFile}.1`)).toBe(true);
+      expect(fs.existsSync(`${testDataFile}.9`)).toBe(true);
+      expect(fs.existsSync(`${testDataFile}.10`)).toBe(false);
+      
+      // .1 should have the most recent backup (version 9), .9 should contain version 2
+      // (version 0 and 1 were discarded when we hit the 9-backup limit)
+      const backup9Content = JSON.parse(fs.readFileSync(`${testDataFile}.9`, 'utf8'));
+      expect(backup9Content.version).toBe(2);
+    });
+
+    test('should handle missing intermediate backups gracefully', () => {
+      // Create .1 and .3 backups manually (skip .2)
+      fs.writeFileSync(testDataFile, JSON.stringify({ test: 'original' }, null, 2));
+      fs.writeFileSync(`${testDataFile}.1`, JSON.stringify({ test: 'backup1' }, null, 2));
+      fs.writeFileSync(`${testDataFile}.3`, JSON.stringify({ test: 'backup3' }, null, 2));
+      
+      // Save should rotate existing backups correctly
+      backupManager.characters = { test: 'new' };
+      backupManager.saveCharacters();
+      
+      // .1 becomes .2, .3 becomes .4, new backup becomes .1
+      expect(fs.existsSync(`${testDataFile}.1`)).toBe(true);
+      expect(fs.existsSync(`${testDataFile}.2`)).toBe(true);
+      expect(fs.existsSync(`${testDataFile}.3`)).toBe(false); // Should be moved to .4
+      expect(fs.existsSync(`${testDataFile}.4`)).toBe(true);
+      
+      const backup2Content = JSON.parse(fs.readFileSync(`${testDataFile}.2`, 'utf8'));
+      expect(backup2Content.test).toBe('backup1');
+    });
+
+    test('should not create backups when backupOnSave is false', () => {
+      const noBackupManager = new CharacterManager(mockConfig); // Uses backupOnSave: false
+      
+      const createResponse = `<new-character>
+{
+  "name": "NoBackupTest",
+  "class": "mage",
+  "race": "elf", 
+  "password": "test123"
+}
+</new-character>`;
+      
+      noBackupManager.parseNewCharacter(createResponse);
+      noBackupManager.saveCharacters();
+      
+      // No backup files should be created
+      expect(fs.existsSync(`${testDataFile}.1`)).toBe(false);
+    });
+
+    test('should continue saving even if backup rotation fails', () => {
+      // Create a character
+      const createResponse = `<new-character>
+{
+  "name": "FailureTest",
+  "class": "warrior",
+  "race": "human", 
+  "password": "test123"
+}
+</new-character>`;
+      
+      const result = backupManager.parseNewCharacter(createResponse);
+      
+      // Mock fs.renameSync to throw an error during rotation
+      const originalRename = fs.renameSync;
+      fs.renameSync = jest.fn(() => {
+        throw new Error('Mock rotation failure');
+      });
+      
+      // Save should still succeed despite backup rotation failure
+      const saveResult = backupManager.saveCharacters();
+      expect(saveResult).toBe(true);
+      
+      // Verify main data file was still created
+      expect(fs.existsSync(testDataFile)).toBe(true);
+      
+      // Restore original function
+      fs.renameSync = originalRename;
+    });
+  });
 });

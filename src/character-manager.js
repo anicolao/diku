@@ -22,7 +22,7 @@ class CharacterManager {
     this.dataFile = path.resolve(
       config.characters?.dataFile || "characters.json",
     );
-    this.backupOnSave = config.characters?.backupOnSave || true;
+    this.backupOnSave = config.characters?.backupOnSave ?? true;
     this.characters = {};
 
     this.loadCharacters();
@@ -59,12 +59,45 @@ class CharacterManager {
   }
 
   /**
+   * Rotate backup files (.1, .2, .3, ..., .9)
+   * .1 is the latest backup, .9 is the oldest and gets discarded
+   */
+  rotateBackups() {
+    try {
+      // Remove .9 backup if it exists (oldest backup gets discarded)
+      const backup9 = `${this.dataFile}.9`;
+      if (fs.existsSync(backup9)) {
+        fs.unlinkSync(backup9);
+      }
+
+      // Shift all backups up by one (.8 -> .9, .7 -> .8, ..., .1 -> .2)
+      for (let i = 8; i >= 1; i--) {
+        const currentBackup = `${this.dataFile}.${i}`;
+        const nextBackup = `${this.dataFile}.${i + 1}`;
+        
+        if (fs.existsSync(currentBackup)) {
+          fs.renameSync(currentBackup, nextBackup);
+        }
+      }
+    } catch (error) {
+      console.error(
+        `Warning: Failed to rotate backups for ${this.dataFile}: ${error.message}`,
+      );
+      // Continue with save even if backup rotation fails
+    }
+  }
+
+  /**
    * Save characters to storage file
    */
   saveCharacters() {
     try {
       if (this.backupOnSave && fs.existsSync(this.dataFile)) {
-        const backupFile = `${this.dataFile}.backup.${Date.now()}`;
+        // Rotate existing backups
+        this.rotateBackups();
+        
+        // Create new .1 backup (latest backup)
+        const backupFile = `${this.dataFile}.1`;
         fs.copyFileSync(this.dataFile, backupFile);
       }
 
