@@ -210,6 +210,90 @@ The holy entrance to the temple glows with divine light.
       const roomId = Object.keys(character.roomMap)[0];
       expect(character.roomMap[roomId].visited_count).toBe(2);
     });
+
+    test("should parse 'Obvious exits:' format from exits command", () => {
+      const character = characterManager.getCharacter(testCharacterId);
+      const exitsOutput = `
+On a Vallenwood Tree Above Solace Square
+    The sturdy boughs of this particularly huge vallenwood tree extend to
+both the north and south. 
+
+46H 91V 1499X 0.00% 0C T:9 Exits:NESWUD> exits
+Obvious exits:
+North - On a Vallenwood Bough
+East  - A Solace Canopy Walk
+South - On a Vallenwood Bough
+West  - On a Canopy Walk Between Two Vallenwood Trees
+Up    - Climbing a Huge Vallenwood Tree
+Down  - Solace Square
+      `;
+
+      characterManager.updateRoomMap(character, exitsOutput);
+
+      const roomId = "on_a_vallenwood_tree_above_solace_square";
+      const room = character.roomMap[roomId];
+      
+      expect(room).toBeDefined();
+      expect(room.name).toBe("On a Vallenwood Tree Above Solace Square");
+      expect(room.exits).toEqual(["N", "E", "S", "W", "U", "D"]);
+      
+      // Check connections were created
+      expect(room.connections).toEqual({
+        "N": "on_a_vallenwood_bough",
+        "E": "a_solace_canopy_walk",
+        "S": "on_a_vallenwood_bough",
+        "W": "on_a_canopy_walk_between_two_vallenwood_trees",
+        "U": "climbing_a_huge_vallenwood_tree",
+        "D": "solace_square"
+      });
+
+      // Check that destination rooms were created
+      expect(character.roomMap["solace_square"]).toBeDefined();
+      expect(character.roomMap["solace_square"].name).toBe("Solace Square");
+      expect(character.roomMap["solace_square"].connections["U"]).toBe(roomId);
+    });
+
+    test("should correct room IDs when actual name doesn't match expected", () => {
+      const character = characterManager.getCharacter(testCharacterId);
+      
+      // Set up initial state with incorrect room name
+      character.currentRoomId = "starting_room";
+      character.roomMap["starting_room"] = {
+        name: "Starting Room",
+        exits: ["D"],
+        connections: { "D": "short_tree" },
+        visited_count: 1
+      };
+      character.roomMap["short_tree"] = {
+        name: "Short Tree",
+        exits: [],
+        connections: {},
+        visited_count: 0
+      };
+      
+      // Simulate successful movement
+      character.movementHistory = [
+        { direction: "D", result: "success", timestamp: new Date().toISOString() }
+      ];
+
+      const correctionOutput = `
+Climbing a Huge Vallenwood Tree
+    You are climbing up this massive vallenwood tree.
+
+45H 89V 1499X 0.00% 0C T:12 Exits:UD> exits
+Obvious exits:
+Up    - On a Vallenwood Tree Above Solace Square
+Down  - Solace Square
+      `;
+
+      characterManager.updateRoomMap(character, correctionOutput);
+
+      // The old "short_tree" should be removed and connections updated
+      expect(character.roomMap["short_tree"]).toBeUndefined();
+      expect(character.roomMap["starting_room"].connections["D"]).toBe("climbing_a_huge_vallenwood_tree");
+      expect(character.roomMap["climbing_a_huge_vallenwood_tree"]).toBeDefined();
+      expect(character.roomMap["climbing_a_huge_vallenwood_tree"].name).toBe("Climbing a Huge Vallenwood Tree");
+    });
   });
 
   describe("Path Memory", () => {

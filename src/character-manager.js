@@ -405,6 +405,7 @@ class CharacterManager {
     const lines = mudOutput.split("\n");
     let roomName = null;
     let exits = [];
+    let exitConnections = {}; // Store connections from exits command
 
     // Try to find room name - typically the first standalone line after movement
     for (let i = 0; i < lines.length; i++) {
@@ -415,7 +416,9 @@ class CharacterManager {
         !cleanLine ||
         cleanLine.includes("walk") ||
         cleanLine.includes("move") ||
-        (cleanLine.includes("H ") && cleanLine.includes("V "))
+        cleanLine.includes("climb") ||
+        (cleanLine.includes("H ") && cleanLine.includes("V ")) ||
+        cleanLine.startsWith("You ")
       ) {
         continue;
       }
@@ -425,23 +428,65 @@ class CharacterManager {
         cleanLine.length > 3 &&
         cleanLine.length < 80 &&
         !cleanLine.includes("Exits:") &&
+        !cleanLine.includes("Obvious exits:") &&
         !cleanLine.includes("You are") &&
         !cleanLine.includes("arrives") &&
-        !cleanLine.includes("This is")
+        !cleanLine.includes("This is") &&
+        !cleanLine.includes(" - ") && // Skip exit listing lines
+        !cleanLine.includes("    ") && // Skip description lines that start with indentation
+        !cleanLine.includes(".") // Skip sentences/descriptions
       ) {
         roomName = cleanLine;
         break;
       }
     }
 
-    // Extract exits from status line or exit lines
-    const exitMatch = mudOutput.match(/Exits:([NSEWUD,\s]+)/);
-    if (exitMatch) {
-      // Extract individual direction letters, removing commas and spaces
-      exits = exitMatch[1]
-        .replace(/[,\s]/g, "")
-        .split("")
-        .filter((exit) => "NSEWUD".includes(exit));
+    // First try to parse "Obvious exits:" format (from exits command)
+    const obviousExitsMatch = mudOutput.match(/Obvious exits:\s*\n(.*?)(?:\n\n|\n$|$)/s);
+    if (obviousExitsMatch) {
+      const exitLines = obviousExitsMatch[1].split("\n");
+      for (const line of exitLines) {
+        const cleanLine = line.trim();
+        if (!cleanLine) continue;
+        
+        // Parse format like: "North - On a Vallenwood Bough"
+        const exitMatch = cleanLine.match(/^(North|South|East|West|Up|Down)\s*-\s*(.+)$/);
+        if (exitMatch) {
+          const direction = exitMatch[1];
+          const destinationName = exitMatch[2].trim();
+          
+          // Convert full direction name to single letter
+          const directionMap = {
+            "North": "N",
+            "South": "S", 
+            "East": "E",
+            "West": "W",
+            "Up": "U",
+            "Down": "D"
+          };
+          
+          const shortDir = directionMap[direction];
+          if (shortDir) {
+            exits.push(shortDir);
+            // Generate destination room ID from name
+            const destinationId = destinationName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+            exitConnections[shortDir] = {
+              roomId: destinationId,
+              roomName: destinationName
+            };
+          }
+        }
+      }
+    } else {
+      // Fallback: Extract exits from status line
+      const exitMatch = mudOutput.match(/Exits:([NSEWUD,\s]+)/);
+      if (exitMatch) {
+        // Extract individual direction letters, removing commas and spaces
+        exits = exitMatch[1]
+          .replace(/[,\s]/g, "")
+          .split("")
+          .filter((exit) => "NSEWUD".includes(exit));
+      }
     }
 
     // If we found room information, update the map
@@ -449,7 +494,11 @@ class CharacterManager {
       // Generate a simple room ID based on room name
       const roomId = roomName.toLowerCase().replace(/[^a-z0-9]/g, "_");
 
-      if (!character.roomMap[roomId]) {
+      // Check if this is a new room
+      const isNewRoom = !character.roomMap[roomId];
+
+      if (isNewRoom) {
+        console.log(`🗺️  DEBUG: New room encountered: "${roomName}" (ID: ${roomId})`);
         character.roomMap[roomId] = {
           name: roomName,
           exits: exits,
@@ -462,23 +511,82 @@ class CharacterManager {
         character.roomMap[roomId].exits = exits; // Update exits in case they changed
       }
 
-      // Update connections based on movement
-      if (character.currentRoomId && character.currentRoomId !== roomId) {
-        const prevRoom = character.roomMap[character.currentRoomId];
-        if (prevRoom && character.movementHistory.length > 0) {
-          const lastMove =
-            character.movementHistory[character.movementHistory.length - 1];
-          if (lastMove.result === "success") {
-            // Record the connection in both directions
-            if (!prevRoom.connections) prevRoom.connections = {};
-            if (!character.roomMap[roomId].connections)
-              character.roomMap[roomId].connections = {};
+      // Update connections based on exits command output (not movement attempts)
+      if (Object.keys(exitConnections).length > 0) {
+        if (!character.roomMap[roomId].connections) {
+          character.roomMap[roomId].connections = {};
+        }
+        
+        for (const [direction, connectionInfo] of Object.entries(exitConnections)) {
+          character.roomMap[roomId].connections[direction] = connectionInfo.roomId;
+          
+          // Create or update the destination room entry if we have the name
+          if (!character.roomMap[connectionInfo.roomId]) {
+            character.roomMap[connectionInfo.roomId] = {
+              name: connectionInfo.roomName,
+              exits: [],
+              connections: {},
+              visited_count: 0, // Not actually visited yet
+              first_seen: new Date().toISOString(),
+            };
+          }
+          
+          // Set up bidirectional connection
+          if (!character.roomMap[connectionInfo.roomId].connections) {
+            character.roomMap[connectionInfo.roomId].connections = {};
+          }
+          const oppositeDir = this.getOppositeDirection(direction);
+          if (oppositeDir) {
+            character.roomMap[connectionInfo.roomId].connections[oppositeDir] = roomId;
+          }
+        }
+      }
 
-            prevRoom.connections[lastMove.direction] = roomId;
-            const oppositeDir = this.getOppositeDirection(lastMove.direction);
-            if (oppositeDir) {
-              character.roomMap[roomId].connections[oppositeDir] =
-                character.currentRoomId;
+      // Check if we need to correct a previous room's name based on where we came from
+      if (character.currentRoomId && character.currentRoomId !== roomId && character.movementHistory.length > 0) {
+        const lastMove = character.movementHistory[character.movementHistory.length - 1];
+        if (lastMove.result === "success") {
+          // Check if the previous room has the current room listed as a connection in the direction we moved
+          const prevRoom = character.roomMap[character.currentRoomId];
+          if (prevRoom && prevRoom.connections && prevRoom.connections[lastMove.direction]) {
+            const expectedDestination = prevRoom.connections[lastMove.direction];
+            const expectedRoom = character.roomMap[expectedDestination];
+            
+            if (expectedRoom && expectedRoom.name) {
+              // Check if either name contains key words from the other (more flexible matching)
+              const currentWords = roomName.toLowerCase().split(/\s+/);
+              const expectedWords = expectedRoom.name.toLowerCase().split(/\s+/);
+              
+              // Look for common significant words (ignore common words like "a", "the", "of")
+              const ignoreWords = ["a", "an", "the", "of", "to", "in", "on", "at", "by", "for", "with", "from"];
+              const significantExpected = expectedWords.filter(word => 
+                word.length > 2 && !ignoreWords.includes(word)
+              );
+              const significantCurrent = currentWords.filter(word => 
+                word.length > 2 && !ignoreWords.includes(word)
+              );
+              
+              // If there's at least one significant word match, consider it a correction
+              const hasMatch = significantExpected.some(word => 
+                significantCurrent.includes(word)
+              );
+              
+              if (hasMatch) {
+                console.log(`🔧 DEBUG: Room ID corrected from "${expectedDestination}" to "${roomId}" (name match: "${expectedRoom.name}" -> "${roomName}")`);
+                
+                // Update all connections pointing to the old room ID
+                for (const [, otherRoom] of Object.entries(character.roomMap)) {
+                  if (otherRoom.connections) {
+                    for (const [dir, connectedId] of Object.entries(otherRoom.connections)) {
+                      if (connectedId === expectedDestination) {
+                        otherRoom.connections[dir] = roomId;
+                      }
+                    }
+                  }
+                }
+                // Remove the old incorrect room entry
+                delete character.roomMap[expectedDestination];
+              }
             }
           }
         }
