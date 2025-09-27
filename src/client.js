@@ -76,6 +76,9 @@ class MudClient {
     this.mudOutputQueue = [];
     this.waitingForMudResponse = false;
 
+    // Pathfinding tracking
+    this.lastMovementCommand = null; // Track the last movement command sent
+
     // Generate system prompt based on character selection
     this.systemPrompt = this.generateSystemPrompt();
 
@@ -208,6 +211,23 @@ This status line contains crucial information:
 
 Monitor these values carefully to track your character's condition and plan actions accordingly.
 
+**Pathfinding and Navigation**
+- **Always use 'look' after moving** to understand your new location and available exits
+- **Pay attention to room names and descriptions** - they help build mental maps
+- **Remember landmark locations** like shops, guilds, temples, and training areas
+- **Use cardinal directions only**: N, S, E, W, U (up), D (down) - never NE, NW, etc.
+- **If movement fails**, the MUD will tell you "You can't go that way" - try different exits
+- **Create mental maps** by remembering connections between rooms
+- **Record important paths** in your memory for future navigation
+- **Use descriptive room features** to distinguish similar areas
+
+**Navigation Helper Commands**
+- **Use \`/point <destination>\` to get the next step** to reach a location you've visited before
+- **Use \`/wayfind <destination>\` to get the full path** with all directions to the destination  
+- **These commands work with partial room names** (e.g., \`/point temple\` or \`/wayfind solace\`)
+- **Only works for areas you have explored** - the system uses your discovered room map
+- **Examples**: \`/point market\`, \`/wayfind temple of midgaard\`, \`/point solace\`
+
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
 2. **Command**: Send a <command>your command</command> block which contains **one command** to be transmitted to the server
@@ -253,13 +273,23 @@ Last location: ${characterContext.location}
 Recent memories:
 ${characterContext.memories}
 
+**Navigation Context**
+${characterContext.navigation}
+
+**Pathfinding Tips**
+- Remember to use 'look' frequently to understand your current room and available exits
+- Pay attention to room names and descriptions to build mental maps
+- Use cardinal directions only: N, S, E, W, U (up), D (down)
+- If you get lost, try to retrace your steps or find familiar landmarks
+- Record important paths in your memory for future reference
+
 Login: Send your character name *by itself* as the first command, followed by your password *by itself* as the second command.
 
 Record *important* experiences:
 <record-memory>
 {
   "summary": "Brief description",
-  "type": "level_up|social|combat|exploration|quest", 
+  "type": "level_up|social|combat|exploration|quest|pathfinding", 
   "details": { "key": "value" }
 }
 </record-memory>
@@ -295,7 +325,7 @@ You may record significant experiences:
 <record-memory>
 {
   "summary": "Brief description",
-  "type": "level_up|social|combat|exploration|quest",
+  "type": "level_up|social|combat|exploration|quest|pathfinding",
   "details": { "key": "value" }
 }
 </record-memory>
@@ -422,6 +452,24 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       content: output,
       timestamp: new Date(),
     });
+
+    // Track movement results for pathfinding if we just sent a movement command
+    if (this.lastMovementCommand && this.currentCharacterId) {
+      const success =
+        !output.toLowerCase().includes("you can't go that way") &&
+        !output.toLowerCase().includes("alas, you cannot") &&
+        !output.toLowerCase().includes("you cannot");
+
+      this.characterManager.recordMovement(
+        this.currentCharacterId,
+        this.lastMovementCommand.direction,
+        output,
+        success,
+      );
+
+      // Clear the movement command after processing
+      this.lastMovementCommand = null;
+    }
 
     // If we were waiting for MUD response after sending a command,
     // now we can process any queued messages
@@ -830,12 +878,34 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       this.tui.showDebug("Cannot send command: not connected to MUD");
       return;
     }
+
+    // Intercept navigation helper commands
+    const trimmedCommand = command.trim();
+    if (
+      trimmedCommand.startsWith("/point ") ||
+      trimmedCommand.startsWith("/wayfind ")
+    ) {
+      this.llmRequestPending = false;
+      this.tui.showDebug("✅ LLM request completed");
+      await this.handleNavigationCommand(trimmedCommand);
+      return;
+    }
+
     // Mark LLM request as completed but don't process queued messages yet
     // We need to wait for the MUD response after sending the command
     try {
       this.llmRequestPending = false;
       this.tui.showDebug("✅ LLM request completed");
       this.waitingForMudResponse = true;
+
+      // Track if this is a movement command for pathfinding
+      const isMovementCommand = this.isMovementCommand(command.trim());
+      if (isMovementCommand) {
+        this.lastMovementCommand = {
+          direction: command.trim().toUpperCase(),
+          timestamp: new Date().toISOString(),
+        };
+      }
 
       this.tui.showDebug(`🚀 SENDING TO MUD: ${command}`);
 
@@ -853,6 +923,77 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       this.tui.updateInputStatus("Command sent. Waiting for MUD response...");
     } catch (error) {
       this.tui.showDebug(`Error sending command to MUD: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if a command is a movement command
+   */
+  isMovementCommand(command) {
+    const movementCommands = [
+      "N",
+      "S",
+      "E",
+      "W",
+      "U",
+      "D",
+      "NORTH",
+      "SOUTH",
+      "EAST",
+      "WEST",
+      "UP",
+      "DOWN",
+    ];
+    return movementCommands.includes(command.toUpperCase());
+  }
+
+  /**
+   * Handle navigation helper commands (/point and /wayfind)
+   */
+  async handleNavigationCommand(command) {
+    if (!this.currentCharacterId) {
+      const response =
+        "Navigation commands require a character to be selected.";
+      this.tui.showMudOutput(response);
+      await this.sendToLLM(response);
+      return;
+    }
+
+    const parts = command.split(" ");
+    const commandType = parts[0]; // "/point" or "/wayfind"
+    const destination = parts.slice(1).join(" ").trim();
+
+    if (!destination) {
+      const response = `Usage: ${commandType} <destination>`;
+      this.tui.showMudOutput(response);
+      await this.sendToLLM(response);
+      return;
+    }
+
+    this.tui.showDebug(`Processing navigation command: ${command}`);
+
+    try {
+      let response;
+      if (commandType === "/point") {
+        response = this.characterManager.findNextStep(
+          this.currentCharacterId,
+          destination,
+        );
+      } else if (commandType === "/wayfind") {
+        response = this.characterManager.findFullPath(
+          this.currentCharacterId,
+          destination,
+        );
+      }
+
+      // Show the navigation result to both TUI and send to LLM
+      this.tui.showMudOutput(response);
+      await this.sendToLLM(response);
+    } catch (error) {
+      const errorResponse = `Navigation error: ${error.message}`;
+      this.tui.showDebug(errorResponse);
+      this.tui.showMudOutput(errorResponse);
+      await this.sendToLLM(errorResponse);
     }
   }
 
