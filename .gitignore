@@ -20,6 +20,10 @@ config.json
 characters.json
 characters.json.backup.*
 
+# Test character data files
+test-characters.json
+test-characters.json.backup.*
+
 # Test coverage
 coverage/
 
