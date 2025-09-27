@@ -1,0 +1,18 @@
+{
+  "bb6f5693-2af5-47d7-81ee-997608e6afe7": {
+    "characterId": "bb6f5693-2af5-47d7-81ee-997608e6afe7",
+    "name": "Navigator",
+    "password": "test",
+    "class": "warrior",
+    "race": "human",
+    "level": 1,
+    "location": "Starting Room",
+    "keyMemories": [],
+    "roomMap": {},
+    "movementHistory": [],
+    "pathMemory": [],
+    "currentRoomId": null,
+    "createdAt": "2025-09-27T00:56:48.467Z",
+    "lastPlayed": "2025-09-27T00:56:48.467Z"
+  }
+}

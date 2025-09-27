@@ -1,0 +1,18 @@
+{
+  "b290edb5-cfed-42b4-aa26-1e554518a5a6": {
+    "characterId": "b290edb5-cfed-42b4-aa26-1e554518a5a6",
+    "name": "Pathfinder",
+    "password": "paths",
+    "class": "ranger",
+    "race": "human",
+    "level": 3,
+    "location": "Forest",
+    "keyMemories": [],
+    "roomMap": {},
+    "movementHistory": [],
+    "pathMemory": [],
+    "currentRoomId": null,
+    "createdAt": "2025-09-27T00:56:48.484Z",
+    "lastPlayed": "2025-09-27T00:56:48.484Z"
+  }
+}

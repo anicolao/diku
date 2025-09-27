@@ -1,0 +1,91 @@
+{
+  "f68ab84e-91eb-479d-acbf-b1a8f95daf6e": {
+    "characterId": "f68ab84e-91eb-479d-acbf-b1a8f95daf6e",
+    "name": "Pathfinder",
+    "password": "paths",
+    "class": "ranger",
+    "race": "human",
+    "level": 3,
+    "location": "Forest",
+    "keyMemories": [],
+    "roomMap": {},
+    "movementHistory": [],
+    "pathMemory": [
+      {
+        "from": "Location0",
+        "to": "Destination0",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.489Z"
+      },
+      {
+        "from": "Location1",
+        "to": "Destination1",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.489Z"
+      },
+      {
+        "from": "Location2",
+        "to": "Destination2",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.489Z"
+      },
+      {
+        "from": "Location3",
+        "to": "Destination3",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.490Z"
+      },
+      {
+        "from": "Location4",
+        "to": "Destination4",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.490Z"
+      },
+      {
+        "from": "Location5",
+        "to": "Destination5",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.490Z"
+      },
+      {
+        "from": "Location6",
+        "to": "Destination6",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.491Z"
+      },
+      {
+        "from": "Location7",
+        "to": "Destination7",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.491Z"
+      },
+      {
+        "from": "Location8",
+        "to": "Destination8",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T00:56:48.491Z"
+      }
+    ],
+    "currentRoomId": null,
+    "createdAt": "2025-09-27T00:56:48.489Z",
+    "lastPlayed": "2025-09-27T00:56:48.489Z"
+  }
+}

@@ -1,0 +1,217 @@
+{
+  "1285cbea-9fd3-4b9d-916e-50f2cd8165c0": {
+    "characterId": "1285cbea-9fd3-4b9d-916e-50f2cd8165c0",
+    "name": "Navigator",
+    "password": "test",
+    "class": "warrior",
+    "race": "human",
+    "level": 1,
+    "location": "Starting Room",
+    "keyMemories": [],
+    "roomMap": {},
+    "movementHistory": [
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.535Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.536Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.536Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.536Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.536Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.536Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.537Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.537Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.537Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.537Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.537Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.538Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.538Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.538Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.538Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.538Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.539Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.539Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.539Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.539Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.539Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.540Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.540Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.540Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.540Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.541Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.541Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.541Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.541Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.541Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.542Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.542Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:58:34.542Z",
+        "mudOutput": "You walk north."
+      }
+    ],
+    "pathMemory": [],
+    "currentRoomId": null,
+    "createdAt": "2025-09-27T00:58:34.535Z",
+    "lastPlayed": "2025-09-27T00:58:34.535Z"
+  }
+}

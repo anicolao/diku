@@ -1,0 +1,38 @@
+{
+  "deb47f5c-7fa5-4511-9755-db51f7c2cdc5": {
+    "characterId": "deb47f5c-7fa5-4511-9755-db51f7c2cdc5",
+    "name": "Navigator",
+    "password": "test",
+    "class": "warrior",
+    "race": "human",
+    "level": 1,
+    "location": "You walk north.",
+    "keyMemories": [],
+    "roomMap": {
+      "you_walk_north_": {
+        "name": "You walk north.",
+        "exits": [],
+        "visited_count": 2,
+        "first_visit": "2025-09-27T00:56:48.469Z"
+      }
+    },
+    "movementHistory": [
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:56:48.469Z",
+        "mudOutput": "You walk north."
+      },
+      {
+        "direction": "N",
+        "result": "success",
+        "timestamp": "2025-09-27T00:56:48.469Z",
+        "mudOutput": "You walk north."
+      }
+    ],
+    "pathMemory": [],
+    "currentRoomId": "you_walk_north_",
+    "createdAt": "2025-09-27T00:56:48.469Z",
+    "lastPlayed": "2025-09-27T00:56:48.469Z"
+  }
+}

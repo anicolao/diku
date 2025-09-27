@@ -89,7 +89,16 @@ class CharacterManager {
    * Get character by ID
    */
   getCharacter(characterId) {
-    return this.characters[characterId] || null;
+    const character = this.characters[characterId];
+    if (!character) return null;
+    
+    // Initialize pathfinding data structures for older characters
+    if (!character.roomMap) character.roomMap = {};
+    if (!character.movementHistory) character.movementHistory = [];
+    if (!character.pathMemory) character.pathMemory = [];
+    if (!character.currentRoomId) character.currentRoomId = null;
+    
+    return character;
   }
 
   /**
@@ -119,6 +128,11 @@ class CharacterManager {
         level: characterData.level || 1,
         location: characterData.location || "unknown",
         keyMemories: [],
+        // Enhanced pathfinding data structures
+        roomMap: {},           // Map of room_id -> { name, description, exits, visited_count }
+        movementHistory: [],   // Recent movement commands and results
+        pathMemory: [],        // Memorable paths between important locations
+        currentRoomId: null,   // Current room identifier
         createdAt: new Date().toISOString(),
         lastPlayed: new Date().toISOString()
       };
@@ -159,7 +173,7 @@ class CharacterManager {
       }
 
       // Validate memory type
-      const validTypes = ["level_up", "social", "combat", "exploration", "quest"];
+      const validTypes = ["level_up", "social", "combat", "exploration", "quest", "pathfinding"];
       if (memoryData.type && !validTypes.includes(memoryData.type)) {
         return { error: `Invalid memory type. Must be one of: ${validTypes.join(", ")}` };
       }
@@ -213,6 +227,9 @@ class CharacterManager {
       .map(memory => `- ${memory.summary}`)
       .join("\n");
 
+    // Generate navigation context from room map and movement history
+    const navigationContext = this.generateNavigationContext(character);
+
     return {
       name: character.name,
       password: character.password,
@@ -220,8 +237,51 @@ class CharacterManager {
       race: character.race,
       level: character.level,
       location: character.location,
-      memories: recentMemories
+      memories: recentMemories,
+      navigation: navigationContext
     };
+  }
+
+  /**
+   * Generate navigation context for pathfinding assistance
+   */
+  generateNavigationContext(character) {
+    const context = [];
+    
+    // Add current room information if available
+    if (character.currentRoomId && character.roomMap[character.currentRoomId]) {
+      const currentRoom = character.roomMap[character.currentRoomId];
+      context.push(`Current room: ${currentRoom.name}`);
+      if (currentRoom.exits && currentRoom.exits.length > 0) {
+        context.push(`Available exits: ${currentRoom.exits.join(", ")}`);
+      }
+    }
+
+    // Add recent movement history
+    if (character.movementHistory && character.movementHistory.length > 0) {
+      const recentMoves = character.movementHistory
+        .slice(-3)  // Last 3 movements
+        .map(move => `${move.direction} -> ${move.result}`)
+        .join("; ");
+      context.push(`Recent movements: ${recentMoves}`);
+    }
+
+    // Add known paths to important locations
+    if (character.pathMemory && character.pathMemory.length > 0) {
+      const paths = character.pathMemory
+        .slice(-3)  // Most recent paths
+        .map(path => `${path.from} to ${path.to}: ${path.directions.join(" ")}`)
+        .join("; ");
+      context.push(`Known paths: ${paths}`);
+    }
+
+    // Add room exploration summary
+    const roomCount = Object.keys(character.roomMap || {}).length;
+    if (roomCount > 0) {
+      context.push(`Explored ${roomCount} rooms`);
+    }
+
+    return context.length > 0 ? context.join("\n") : "No navigation data available";
   }
 
   /**
@@ -256,6 +316,132 @@ class CharacterManager {
     }
 
     return responses;
+  }
+
+  /**
+   * Record movement and update room map
+   */
+  recordMovement(characterId, direction, mudOutput, success = true) {
+    const character = this.characters[characterId];
+    if (!character) return false;
+
+    // Initialize pathfinding data structures if they don't exist (for old characters)
+    if (!character.movementHistory) character.movementHistory = [];
+    if (!character.roomMap) character.roomMap = {};
+    if (!character.pathMemory) character.pathMemory = [];
+
+    // Record the movement
+    const movement = {
+      direction,
+      result: success ? "success" : "failed",
+      timestamp: new Date().toISOString(),
+      mudOutput: mudOutput.substring(0, 200) // Store first 200 chars for context
+    };
+
+    character.movementHistory.push(movement);
+
+    // Keep only last 50 movements to prevent excessive memory usage
+    if (character.movementHistory.length > 50) {
+      character.movementHistory = character.movementHistory.slice(-50);
+    }
+
+    // Try to extract room information from MUD output and update room map
+    this.updateRoomMap(character, mudOutput);
+
+    this.saveCharacters();
+    return true;
+  }
+
+  /**
+   * Update room map based on MUD output
+   */
+  updateRoomMap(character, mudOutput) {
+    // Simple room detection - look for room names and exits
+    const lines = mudOutput.split("\n");
+    let roomName = null;
+    let exits = [];
+
+    // Try to find room name - typically the first standalone line after movement
+    for (let i = 0; i < lines.length; i++) {
+      const cleanLine = lines[i].trim();
+      
+      // Skip empty lines and movement messages
+      if (!cleanLine || 
+          cleanLine.includes("walk") || 
+          cleanLine.includes("move") ||
+          cleanLine.includes("H ") && cleanLine.includes("V ")) {
+        continue;
+      }
+      
+      // Look for a line that looks like a room name (short, no special formatting)
+      if (cleanLine.length > 3 && cleanLine.length < 80 && 
+          !cleanLine.includes("Exits:") && 
+          !cleanLine.includes("You are") &&
+          !cleanLine.includes("This is")) {
+        roomName = cleanLine;
+        break;
+      }
+    }
+
+    // Extract exits from status line or exit lines
+    const exitMatch = mudOutput.match(/Exits:([NSEWUD,\s]+)/);
+    if (exitMatch) {
+      // Extract individual direction letters, removing commas and spaces
+      exits = exitMatch[1].replace(/[,\s]/g, "").split("").filter(exit => "NSEWUD".includes(exit));
+    }
+
+    // If we found room information, update the map
+    if (roomName) {
+      // Generate a simple room ID based on room name
+      const roomId = roomName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      
+      if (!character.roomMap[roomId]) {
+        character.roomMap[roomId] = {
+          name: roomName,
+          exits: exits,
+          visited_count: 1,
+          first_visit: new Date().toISOString()
+        };
+      } else {
+        character.roomMap[roomId].visited_count++;
+        character.roomMap[roomId].exits = exits; // Update exits in case they changed
+      }
+
+      character.currentRoomId = roomId;
+      character.location = roomName; // Update location for backward compatibility
+    }
+  }
+
+  /**
+   * Record a memorable path between locations
+   */
+  recordPath(characterId, fromLocation, toLocation, directions) {
+    const character = this.characters[characterId];
+    if (!character) return false;
+
+    if (!character.pathMemory) character.pathMemory = [];
+
+    const path = {
+      from: fromLocation,
+      to: toLocation,
+      directions: directions,
+      recorded: new Date().toISOString()
+    };
+
+    // Remove any existing path between these locations
+    character.pathMemory = character.pathMemory.filter(
+      p => !(p.from === fromLocation && p.to === toLocation)
+    );
+
+    character.pathMemory.push(path);
+
+    // Keep only last 20 paths to prevent excessive memory usage
+    if (character.pathMemory.length > 20) {
+      character.pathMemory = character.pathMemory.slice(-20);
+    }
+
+    this.saveCharacters();
+    return true;
   }
 }
 

@@ -1,0 +1,18 @@
+{
+  "c9139a11-1836-4df9-8b3a-80ff3803a1bb": {
+    "characterId": "c9139a11-1836-4df9-8b3a-80ff3803a1bb",
+    "name": "MemoryTester",
+    "password": "memory",
+    "class": "cleric",
+    "race": "dwarf",
+    "level": 1,
+    "location": "Mountain Hall",
+    "keyMemories": [],
+    "roomMap": {},
+    "movementHistory": [],
+    "pathMemory": [],
+    "currentRoomId": null,
+    "createdAt": "2025-09-27T01:01:22.584Z",
+    "lastPlayed": "2025-09-27T01:01:22.584Z"
+  }
+}

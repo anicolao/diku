@@ -1,0 +1,59 @@
+{
+  "c069ad06-7685-4b54-a330-721a477d2ff1": {
+    "characterId": "c069ad06-7685-4b54-a330-721a477d2ff1",
+    "name": "Pathfinder",
+    "password": "paths",
+    "class": "ranger",
+    "race": "human",
+    "level": 3,
+    "location": "Forest",
+    "keyMemories": [],
+    "roomMap": {},
+    "movementHistory": [],
+    "pathMemory": [
+      {
+        "from": "Location0",
+        "to": "Destination0",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T01:00:43.883Z"
+      },
+      {
+        "from": "Location1",
+        "to": "Destination1",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T01:00:43.884Z"
+      },
+      {
+        "from": "Location2",
+        "to": "Destination2",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T01:00:43.884Z"
+      },
+      {
+        "from": "Location3",
+        "to": "Destination3",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T01:00:43.884Z"
+      },
+      {
+        "from": "Location4",
+        "to": "Destination4",
+        "directions": [
+          "N"
+        ],
+        "recorded": "2025-09-27T01:00:43.884Z"
+      }
+    ],
+    "currentRoomId": null,
+    "createdAt": "2025-09-27T01:00:43.883Z",
+    "lastPlayed": "2025-09-27T01:00:43.883Z"
+  }
+}
