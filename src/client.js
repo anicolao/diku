@@ -210,6 +210,13 @@ Monitor these values carefully to track your character's condition and plan acti
 - **Record important paths** in your memory for future navigation
 - **Use descriptive room features** to distinguish similar areas
 
+**Navigation Helper Commands**
+- **Use \`/point <destination>\` to get the next step** to reach a location you've visited before
+- **Use \`/wayfind <destination>\` to get the full path** with all directions to the destination  
+- **These commands work with partial room names** (e.g., \`/point temple\` or \`/wayfind solace\`)
+- **Only works for areas you have explored** - the system uses your discovered room map
+- **Examples**: \`/point market\`, \`/wayfind temple of midgaard\`, \`/point solace\`
+
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
 2. **Command**: Send a <command>your command</command> block which contains **one command** to be transmitted to the server
@@ -857,6 +864,14 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       this.tui.showDebug("Cannot send command: not connected to MUD");
       return;
     }
+
+    // Intercept navigation helper commands
+    const trimmedCommand = command.trim();
+    if (trimmedCommand.startsWith("/point ") || trimmedCommand.startsWith("/wayfind ")) {
+      await this.handleNavigationCommand(trimmedCommand);
+      return;
+    }
+
     // Mark LLM request as completed but don't process queued messages yet
     // We need to wait for the MUD response after sending the command
     try {
@@ -898,6 +913,50 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
   isMovementCommand(command) {
     const movementCommands = ["N", "S", "E", "W", "U", "D", "NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN"];
     return movementCommands.includes(command.toUpperCase());
+  }
+
+  /**
+   * Handle navigation helper commands (/point and /wayfind)
+   */
+  async handleNavigationCommand(command) {
+    if (!this.currentCharacterId) {
+      const response = "Navigation commands require a character to be selected.";
+      this.tui.showMudOutput(response);
+      await this.sendToLLM(response);
+      return;
+    }
+
+    const parts = command.split(" ");
+    const commandType = parts[0]; // "/point" or "/wayfind"
+    const destination = parts.slice(1).join(" ").trim();
+
+    if (!destination) {
+      const response = `Usage: ${commandType} <destination>`;
+      this.tui.showMudOutput(response);
+      await this.sendToLLM(response);
+      return;
+    }
+
+    this.tui.showDebug(`Processing navigation command: ${command}`);
+
+    try {
+      let response;
+      if (commandType === "/point") {
+        response = this.characterManager.findNextStep(this.currentCharacterId, destination);
+      } else if (commandType === "/wayfind") {
+        response = this.characterManager.findFullPath(this.currentCharacterId, destination);
+      }
+
+      // Show the navigation result to both TUI and send to LLM
+      this.tui.showMudOutput(response);
+      await this.sendToLLM(response);
+
+    } catch (error) {
+      const errorResponse = `Navigation error: ${error.message}`;
+      this.tui.showDebug(errorResponse);
+      this.tui.showMudOutput(errorResponse);
+      await this.sendToLLM(errorResponse);
+    }
   }
 
   /**

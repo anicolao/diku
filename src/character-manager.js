@@ -353,6 +353,16 @@ class CharacterManager {
   }
 
   /**
+   * Get opposite direction for pathfinding
+   */
+  getOppositeDirection(direction) {
+    const opposites = {
+      "N": "S", "S": "N", "E": "W", "W": "E", "U": "D", "D": "U"
+    };
+    return opposites[direction] || null;
+  }
+
+  /**
    * Update room map based on MUD output
    */
   updateRoomMap(character, mudOutput) {
@@ -399,12 +409,32 @@ class CharacterManager {
         character.roomMap[roomId] = {
           name: roomName,
           exits: exits,
+          connections: {}, // Track actual connections to other rooms
           visited_count: 1,
           first_visit: new Date().toISOString()
         };
       } else {
         character.roomMap[roomId].visited_count++;
         character.roomMap[roomId].exits = exits; // Update exits in case they changed
+      }
+
+      // Update connections based on movement
+      if (character.currentRoomId && character.currentRoomId !== roomId) {
+        const prevRoom = character.roomMap[character.currentRoomId];
+        if (prevRoom && character.movementHistory.length > 0) {
+          const lastMove = character.movementHistory[character.movementHistory.length - 1];
+          if (lastMove.result === "success") {
+            // Record the connection in both directions
+            if (!prevRoom.connections) prevRoom.connections = {};
+            if (!character.roomMap[roomId].connections) character.roomMap[roomId].connections = {};
+            
+            prevRoom.connections[lastMove.direction] = roomId;
+            const oppositeDir = this.getOppositeDirection(lastMove.direction);
+            if (oppositeDir) {
+              character.roomMap[roomId].connections[oppositeDir] = character.currentRoomId;
+            }
+          }
+        }
       }
 
       character.currentRoomId = roomId;
@@ -435,13 +465,138 @@ class CharacterManager {
 
     character.pathMemory.push(path);
 
-    // Keep only last 20 paths to prevent excessive memory usage
-    if (character.pathMemory.length > 20) {
-      character.pathMemory = character.pathMemory.slice(-20);
-    }
-
+    // Note: No limit on path memory to allow full exploration tracking
+    
     this.saveCharacters();
     return true;
+  }
+
+  /**
+   * Find the next step to reach a destination using BFS
+   */
+  findNextStep(characterId, destination) {
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      return "Error: Character not found.";
+    }
+
+    const path = this.findShortestPath(character, destination);
+    if (path === null) {
+      return `No path found to "${destination}". Make sure you've explored the area and the destination exists.`;
+    }
+
+    if (path.length === 0) {
+      return `You are already at or very close to "${destination}".`;
+    }
+
+    const nextDirection = path[0]; // First direction in path
+    return `Next step to reach "${destination}": ${nextDirection}`;
+  }
+
+  /**
+   * Find the full path to reach a destination using BFS
+   */
+  findFullPath(characterId, destination) {
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      return "Error: Character not found.";
+    }
+
+    const path = this.findShortestPath(character, destination);
+    if (path === null) {
+      return `No path found to "${destination}". Make sure you've explored the area and the destination exists.`;
+    }
+
+    if (path.length === 0) {
+      return `You are already at or very close to "${destination}".`;
+    }
+
+    return `Full path to "${destination}": ${path.join(" ")} (${path.length} steps)`;
+  }
+
+  /**
+   * Find shortest path using BFS algorithm
+   */
+  findShortestPath(character, destination) {
+    const roomMap = character.roomMap || {};
+    const currentRoomId = character.currentRoomId;
+
+    if (!currentRoomId) {
+      return null;
+    }
+
+    // Find destination room(s) by partial name match
+    const destinationRooms = Object.keys(roomMap).filter(roomId => {
+      const room = roomMap[roomId];
+      return room.name && room.name.toLowerCase().includes(destination.toLowerCase());
+    });
+
+    if (destinationRooms.length === 0) {
+      return null;
+    }
+
+    // If current room matches destination, return empty path
+    if (destinationRooms.includes(currentRoomId)) {
+      return [];
+    }
+
+    // BFS to find shortest path to any matching destination
+    const queue = [{ roomId: currentRoomId, path: [] }];
+    const visited = new Set([currentRoomId]);
+
+    while (queue.length > 0) {
+      const { roomId, path } = queue.shift();
+
+      // Add adjacent rooms to queue using actual connections
+      const room = roomMap[roomId];
+      if (room && room.connections) {
+        for (const [direction, connectedRoomId] of Object.entries(room.connections)) {
+          if (connectedRoomId && !visited.has(connectedRoomId)) {
+            const newPath = [...path, direction];
+            
+            // Check if this connected room is our destination
+            if (destinationRooms.includes(connectedRoomId)) {
+              return newPath;
+            }
+            
+            visited.add(connectedRoomId);
+            queue.push({ 
+              roomId: connectedRoomId, 
+              path: newPath
+            });
+          }
+        }
+      }
+    }
+
+    return null; // No path found
+  }
+
+  /**
+   * Find which room is in a given direction from current room
+   */
+  findRoomInDirection(fromRoomId, direction, roomMap) {
+    const room = roomMap[fromRoomId];
+    if (room && room.connections) {
+      return room.connections[direction] || null;
+    }
+    return null;
+  }
+
+  /**
+   * Find what direction leads from one room to another
+   */
+  findDirectionToRoom(fromRoom, toRoomId, _roomMap) {
+    if (!fromRoom || !fromRoom.connections) return null;
+
+    // Look for direct connection
+    for (const [direction, connectedRoomId] of Object.entries(fromRoom.connections)) {
+      if (connectedRoomId === toRoomId) {
+        return direction;
+      }
+    }
+    
+    return null;
   }
 }
 
