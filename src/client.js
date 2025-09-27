@@ -78,6 +78,7 @@ class MudClient {
 
     // Pathfinding tracking
     this.lastMovementCommand = null; // Track the last movement command sent
+    this.awaitingExitsResponse = false; // Track if we're waiting for an automatic exits command response
 
     // Generate system prompt based on character selection
     this.systemPrompt = this.generateSystemPrompt();
@@ -467,8 +468,38 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         success,
       );
 
+      // If movement was successful, automatically send "exits" command to get room connectivity info
+      if (success) {
+        this.tui.showDebug("🗺️ Movement successful, sending automatic 'exits' command");
+        this.awaitingExitsResponse = true;
+        // Send exits command immediately after successful movement
+        setTimeout(() => {
+          if (this.socket && this.isConnected) {
+            this.socket.write("exits\n");
+            this.tui.showDebug("🚀 AUTO-SENT: exits");
+          }
+        }, 100); // Small delay to ensure room description is complete
+      }
+
       // Clear the movement command after processing
       this.lastMovementCommand = null;
+    }
+
+    // Check if this output contains "Obvious exits:" response from automatic exits command
+    const isExitsResponse = output.includes("Obvious exits:");
+    if (this.awaitingExitsResponse && isExitsResponse) {
+      this.tui.showDebug("📋 Processing automatic exits response for room mapping");
+      this.awaitingExitsResponse = false;
+      
+      // Process for room mapping and continue to send to LLM for planning
+      if (this.currentCharacterId) {
+        const character = this.characterManager.getCharacter(this.currentCharacterId);
+        if (character) {
+          this.characterManager.updateRoomMap(character, output);
+        }
+      }
+      
+      // Continue with normal processing to send exits info to LLM for planning
     }
 
     // If we were waiting for MUD response after sending a command,
