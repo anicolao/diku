@@ -15,34 +15,37 @@ const CharacterManager = require("./character-manager");
  */
 function sanitizeTextForDisplay(rawText) {
   let text = rawText;
-  
+
   // First strip ANSI escape sequences
   text = stripAnsi(text);
-  
+
   // Handle problematic characters that can mess up TUI display:
-  
+
   // 1. Replace UTF-8 replacement characters (often from invalid UTF-8 sequences)
   //    The hex sequence bf ef ef bd bd bf creates these replacement chars
   text = text.replace(/\uFFFD/g, "");
-  
+
   // 2. Remove problematic characters from invalid UTF-8 sequences
   //    This includes half-width katakana and other chars that appear from corrupted UTF-8
   //    Remove characters in ranges that commonly appear from invalid UTF-8:
-  //    - Half-width katakana (U+FF61-U+FF9F) 
+  //    - Half-width katakana (U+FF61-U+FF9F)
   //    - Other problematic ranges
   text = text.replace(/[\uFF61-\uFF9F]/g, "");
-  
+
   // 3. Remove or replace control characters except for newlines and tabs
-  //    Keep: \n (0x0A), \t (0x09)  
+  //    Keep: \n (0x0A), \t (0x09)
   //    Remove: NULL (0x00), SOH (0x01), STX (0x02), etc.
   //    Also removes other non-printable characters that might interfere with blessed
   // eslint-disable-next-line no-control-regex
-  text = text.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, "");
-  
+  text = text.replace(
+    /[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g,
+    "",
+  );
+
   // 4. Handle carriage returns - convert \r\n to \n, remove standalone \r
   text = text.replace(/\r\n/g, "\n");
   text = text.replace(/\r/g, "");
-  
+
   return text;
 }
 
@@ -141,8 +144,8 @@ class MudClient {
     const basePrompt = `
 You are an expert Diku MUD player connected to arctic diku by telnet.
 Your goal is to create a character and advance to level 10 as
-efficiently as possible, while making friends within the Diku
-environment. In each session, you will play for one hour before
+efficiently as possible, acting alone and not interacting with
+other players. In each session, you will play for one hour before
 returning to a safe exit and disconnecting.
 
 **Environment**
@@ -152,8 +155,13 @@ adventure game, the commands are typically just one or two words,
 such as "look", "north", "get sword", "attack orc", "say hello",
 etc. Keep your commands concise and to the point, including when
 interacting with NPCs. Use "help" to learn general commands, or
-"look NPC" to learn how to interact with an NPC. Each NPC has their
-own set of commands.
+"look NPC", "cons NPC", and "exa item" to learn how to interact 
+with an NPC or items. Each NPC has their own set of commands.
+
+The game is very basic, focus on finding easy monsters to kill
+and training at the guildmasters. Avoid complex quests or
+interactions with other players. You can buy basic equipment once 
+you have some money.
 
 **CRITICAL: Command Structure**
 This is a KEYWORD-DRIVEN text adventure, NOT a natural language
@@ -165,9 +173,11 @@ descriptions, or in the game help for global commands. **Read the Help**.
 - "north" or "n" (movement)
 - "get sword" (action + target)
 - "attack orc" (action + target) 
-- "ask girl guide" (action + NPC + topic keyword)
-- "say hello" (action + message)
+- "listen guide" (action + NPC)
 - "give sword girl" (action + item + target)
+- "get all"
+- "get all corpse"
+- "cons orc" (consider difficulty of killing target)
 
 **WRONG (these will fail):**
 - "ask girl for guide" (contains unnecessary words like "for")
@@ -177,7 +187,8 @@ descriptions, or in the game help for global commands. **Read the Help**.
 - "ne" "nw" or any other non-compass point direction (**only** N, S, E, W, U, D are valid)
 
 **Environment**
-Commands are parsed as: ACTION [TARGET] [OBJECT/TOPIC]. Keywords
+Commands are parsed as: ACTION [TARGET]. Sometimes there is a third
+parameter, ACTION TARGET [OBJECT/TOPIC]. Keywords
 available depend on what's in the current room (items, NPCs, exits).
 Look for keywords hidden in descriptions - they often appear as
 nouns or verbs in the text.
@@ -220,6 +231,8 @@ Monitor these values carefully to track your character's condition and plan acti
 - **list** to list the items for sale in a shop
 - **rent** to save your items when you quit, at a receptionist/inn
 - **Eat or drink when you are hungry or thirsty**. Check inventory for food/water.
+- **Try to remember directions to locations you want to get back to**. Do not constantly
+go back and forth between two adjacent rooms; explore and find useful locations.
 `;
 
     // Add character-specific context if a character is selected
