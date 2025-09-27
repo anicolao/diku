@@ -58,15 +58,13 @@ class TUI {
    * Initialize the blessed screen and create UI layout
    */
   initializeScreen() {
-    // Create main screen with better terminal compatibility
+    // Force color support and create main screen with blue background everywhere
     this.screen = blessed.screen({
       smartCSR: true,
       title: "Diku MUD AI Player",
-      fullUnicode: false, // Disable fullUnicode to avoid fallback characters
+      fullUnicode: true,
       dockBorders: true,
       warnings: false,
-      autoPadding: true,
-      ignoreLocked: ["C-c"], // Allow Ctrl+C to always work
       style: {
         bg: "blue",
         fg: "white",
@@ -77,11 +75,6 @@ class TUI {
     if (this.screen.tput.colors < 256) {
       this.screen.tput.colors = 256;
     }
-
-    // Improve box character compatibility
-    // Force ASCII mode for better compatibility across terminals
-    this.screen.tput.unicode = false;
-    this.screen.tput.brokenACS = false;
 
     // Create a full-screen background element to ensure complete blue coverage
     this.backgroundElement = blessed.box({
@@ -315,38 +308,6 @@ class TUI {
   }
 
   /**
-   * Sanitize content for blessed.js to prevent garbage characters
-   */
-  sanitizeContent(text) {
-    if (!text) return text;
-    
-    // Remove control characters using a whitelist approach instead
-    let result = text
-      // First normalize line endings
-      .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n");
-    
-    // Remove non-printable characters except newlines and tabs
-    result = result.split("").filter(char => {
-      const code = char.charCodeAt(0);
-      // Allow newlines (10), tabs (9), and printable ASCII (32-126)
-      return code === 9 || code === 10 || (code >= 32 && code <= 126) || code > 126;
-    }).join("");
-    
-    return result
-      // Escape blessed.js markup characters by wrapping them
-      .replace(/\{/g, "{{")
-      .replace(/\}/g, "}}")
-      // Normalize whitespace - replace multiple spaces/tabs with single space
-      .replace(/[ \t]+/g, " ")
-      // Limit line length to prevent wrapping issues (blessed.js can have issues with very long lines)
-      .split("\n")
-      .map(line => line.length > 200 ? line.substring(0, 197) + "..." : line)
-      .join("\n")
-      .trim();
-  }
-
-  /**
    * Display LLM status, plans, and reasoning
    */
   showLLMStatus(data) {
@@ -357,45 +318,50 @@ class TUI {
     let logContent = "";
 
     if (data.contextInfo) {
-      const sanitized = this.sanitizeContent(data.contextInfo);
-      content += `{cyan-fg}💭 ${sanitized}{/cyan-fg}\n`;
-      logContent += `💭 ${data.contextInfo}\n`; // Log original content
+      // Use simpler formatting to avoid emoji/unicode rendering issues
+      content += `{cyan-fg}Context: ${data.contextInfo}{/cyan-fg}\n`;
+      logContent += `💭 ${data.contextInfo}\n`;
     }
 
     if (data.plan) {
-      const sanitized = this.sanitizeContent(data.plan);
-      content += `{yellow-fg}📋 Plan:{/yellow-fg} ${sanitized}\n`;
-      logContent += `📋 Plan: ${data.plan}\n`; // Log original content
+      content += `{yellow-fg}Plan: ${data.plan}{/yellow-fg}\n`;
+      logContent += `📋 Plan: ${data.plan}\n`;
     }
 
     if (data.nextStep) {
-      const sanitized = this.sanitizeContent(data.nextStep);
-      content += `{green-fg}➡️  Next Step:{/green-fg} ${sanitized}\n`;
-      logContent += `➡️  Next Step: ${data.nextStep}\n`; // Log original content
+      content += `{green-fg}Next Step: ${data.nextStep}{/green-fg}\n`;
+      logContent += `➡️  Next Step: ${data.nextStep}\n`;
     }
 
     if (data.command) {
-      const sanitized = this.sanitizeContent(data.command);
-      content += `{white-fg}🎮 Command:{/white-fg} ${sanitized}\n`;
-      logContent += `🎮 Command: ${data.command}\n`; // Log original content
+      content += `{white-fg}Command: ${data.command}{/white-fg}\n`;
+      logContent += `🎮 Command: ${data.command}\n`;
     }
 
     if (data.error) {
-      const sanitized = this.sanitizeContent(data.error);
-      content += `{red-fg}❌ Error:{/red-fg} ${sanitized}\n`;
-      logContent += `❌ Error: ${data.error}\n`; // Log original content
+      content += `{red-fg}Error: ${data.error}{/red-fg}\n`;
+      logContent += `❌ Error: ${data.error}\n`;
     }
 
     content += "\n";
 
-    // Log to file
+    // Log to file (with emoji for log readability)
     if (logContent) {
       this.writeToLog("status", logContent.trim());
     }
 
-    // Append to existing content
+    // Use a more robust content update approach
+    // Clear and set content instead of appending to prevent corruption
     const currentContent = this.statusPanel.getContent();
-    this.statusPanel.setContent(currentContent + content);
+    const lines = currentContent.split("\n");
+    
+    // Keep only the last 50 lines to prevent memory/rendering issues
+    if (lines.length > 50) {
+      lines.splice(0, lines.length - 50);
+    }
+    
+    const cleanedContent = lines.join("\n");
+    this.statusPanel.setContent(cleanedContent + content);
     this.statusPanel.scrollTo(this.statusPanel.getScrollHeight());
     this.screen.render();
   }
@@ -412,9 +378,17 @@ class TUI {
     // Log to file
     this.writeToLog("debug", message);
 
-    // Append to existing content
+    // Use a more robust content update approach
     const currentContent = this.debugPanel.getContent();
-    this.debugPanel.setContent(currentContent + content);
+    const lines = currentContent.split("\n");
+    
+    // Keep only the last 40 lines to prevent memory/rendering issues
+    if (lines.length > 40) {
+      lines.splice(0, lines.length - 40);
+    }
+    
+    const cleanedContent = lines.join("\n");
+    this.debugPanel.setContent(cleanedContent + content);
     this.debugPanel.scrollTo(this.debugPanel.getScrollHeight());
     this.screen.render();
   }
@@ -481,8 +455,18 @@ class TUI {
     // Append to existing content with timestamp and separator for better readability
     const timestamp = new Date().toLocaleTimeString();
     const newContent = `{bold}[${timestamp}]{/bold} ${message}\n`;
+    
+    // Use a more robust content update approach
     const currentContent = this.inputBox.getContent();
-    this.inputBox.setContent(currentContent + newContent);
+    const lines = currentContent.split("\n");
+    
+    // Keep only the last 30 lines to prevent memory/rendering issues in input panel
+    if (lines.length > 30) {
+      lines.splice(0, lines.length - 30);
+    }
+    
+    const cleanedContent = lines.join("\n");
+    this.inputBox.setContent(cleanedContent + newContent);
     this.inputBox.scrollTo(this.inputBox.getScrollHeight());
     this.screen.render();
   }
