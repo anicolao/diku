@@ -491,7 +491,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
       this.tui.showDebug("📋 Processing automatic exits response for room mapping");
       this.awaitingExitsResponse = false;
       
-      // Process for room mapping but don't send to LLM
+      // Process for room mapping and continue to send to LLM for planning
       if (this.currentCharacterId) {
         const character = this.characterManager.getCharacter(this.currentCharacterId);
         if (character) {
@@ -499,8 +499,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
         }
       }
       
-      // Don't continue with LLM processing for exits responses
-      return;
+      // Continue with normal processing to send exits info to LLM for planning
     }
 
     // If we were waiting for MUD response after sending a command,
