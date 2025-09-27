@@ -511,7 +511,7 @@ class CharacterManager {
         character.roomMap[roomId].exits = exits; // Update exits in case they changed
       }
 
-      // Update connections based on exits command output (not movement attempts)
+      // Update connections based on exits command output (preferred method)
       if (Object.keys(exitConnections).length > 0) {
         if (!character.roomMap[roomId].connections) {
           character.roomMap[roomId].connections = {};
@@ -540,6 +540,24 @@ class CharacterManager {
             character.roomMap[connectionInfo.roomId].connections[oppositeDir] = roomId;
           }
         }
+      } else {
+        // Fallback: Create basic connections based on successful movement (deprecated, but for backward compatibility)
+        if (character.currentRoomId && character.currentRoomId !== roomId && character.movementHistory.length > 0) {
+          const lastMove = character.movementHistory[character.movementHistory.length - 1];
+          if (lastMove.result === "success") {
+            const prevRoom = character.roomMap[character.currentRoomId];
+            if (prevRoom) {
+              if (!prevRoom.connections) prevRoom.connections = {};
+              if (!character.roomMap[roomId].connections) character.roomMap[roomId].connections = {};
+              
+              prevRoom.connections[lastMove.direction] = roomId;
+              const oppositeDir = this.getOppositeDirection(lastMove.direction);
+              if (oppositeDir) {
+                character.roomMap[roomId].connections[oppositeDir] = character.currentRoomId;
+              }
+            }
+          }
+        }
       }
 
       // Check if we need to correct a previous room's name based on where we came from
@@ -552,7 +570,8 @@ class CharacterManager {
             const expectedDestination = prevRoom.connections[lastMove.direction];
             const expectedRoom = character.roomMap[expectedDestination];
             
-            if (expectedRoom && expectedRoom.name) {
+            // Only attempt correction if the expected destination is different from the actual room ID
+            if (expectedRoom && expectedRoom.name && expectedDestination !== roomId) {
               // Check if either name contains key words from the other (more flexible matching)
               const currentWords = roomName.toLowerCase().split(/\s+/);
               const expectedWords = expectedRoom.name.toLowerCase().split(/\s+/);
