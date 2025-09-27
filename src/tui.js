@@ -1,25 +1,29 @@
 /**
- * Terminal UI for Diku MUD AI Player
+ * Terminal UI for Diku MUD AI Player using terminal-kit
  * Provides a fancy TUI layout with separate panels for MUD interaction, status, and debug
  */
 
-const blessed = require("blessed");
+const termkit = require("terminal-kit");
 const fs = require("fs");
 const path = require("path");
 
 class TUI {
   constructor(behavior) {
     this.behavior = behavior;
-    this.screen = null;
-    this.mudPanel = null;
-    this.statusPanel = null;
-    this.debugPanel = null;
-    this.inputBox = null;
-
+    this.terminal = termkit.terminal;
+    
     this.waitingForApproval = false;
     this.approvalCallback = null;
-
-    // Initialize logging
+    
+    // Panel boundaries (percentage-based)
+    this.layout = {
+      mudPanel: { x: 1, y: 1, width: 0.7, height: 0.6 },
+      statusPanel: { x: 0.7, y: 1, width: 0.3, height: 0.6 },
+      debugPanel: { x: 1, y: 0.6, width: 0.7, height: 0.4 },
+      inputPanel: { x: 0.7, y: 0.6, width: 0.3, height: 0.4 }
+    };
+    
+    // Initialize logging and screen
     this.initializeLogging();
     this.initializeScreen();
   }
@@ -55,214 +59,161 @@ class TUI {
   }
 
   /**
-   * Initialize the blessed screen and create UI layout
+   * Initialize the terminal-kit screen and create UI layout
    */
   initializeScreen() {
-    // Force color support and create main screen with blue background everywhere
-    this.screen = blessed.screen({
-      smartCSR: true,
-      title: "Diku MUD AI Player",
-      fullUnicode: true,
-      dockBorders: true,
-      warnings: false,
-      style: {
-        bg: "blue",
-        fg: "white",
-      },
-    });
+    // Clear screen and set up terminal
+    this.terminal.fullscreen();
+    this.terminal.hideCursor();
+    
+    // Set terminal title
+    this.terminal.windowTitle("Diku MUD AI Player");
+    
+    // Calculate panel dimensions based on terminal size
+    this.updateDimensions();
+    
+    // Draw initial interface
+    this.drawInterface();
+    
+    // Set up key handlers
+    this.setupKeyHandlers();
+    
+    // Initialize panel content
+    this.panels = {
+      mud: [],
+      status: [],
+      debug: [],
+      input: []
+    };
+    
+    // Show initial status
+    this.updateInputStatus("Press Ctrl+C to quit. Waiting for MUD connection...");
+  }
 
-    // Force color mode if terminal doesn't detect it properly
-    if (this.screen.tput.colors < 256) {
-      this.screen.tput.colors = 256;
+  /**
+   * Update panel dimensions based on current terminal size
+   */
+  updateDimensions() {
+    const width = this.terminal.width && isFinite(this.terminal.width) ? this.terminal.width : 80;
+    const height = this.terminal.height && isFinite(this.terminal.height) ? this.terminal.height : 24;
+    
+    this.dimensions = {
+      mudPanel: {
+        x: 1,
+        y: 1,
+        width: Math.floor(width * this.layout.mudPanel.width),
+        height: Math.floor(height * this.layout.mudPanel.height)
+      },
+      statusPanel: {
+        x: Math.floor(width * this.layout.statusPanel.x) + 1,
+        y: 1,
+        width: Math.floor(width * this.layout.statusPanel.width),
+        height: Math.floor(height * this.layout.statusPanel.height)
+      },
+      debugPanel: {
+        x: 1,
+        y: Math.floor(height * this.layout.debugPanel.y) + 1,
+        width: Math.floor(width * this.layout.debugPanel.width),
+        height: Math.floor(height * this.layout.debugPanel.height)
+      },
+      inputPanel: {
+        x: Math.floor(width * this.layout.inputPanel.x) + 1,
+        y: Math.floor(height * this.layout.inputPanel.y) + 1,
+        width: Math.floor(width * this.layout.inputPanel.width),
+        height: Math.floor(height * this.layout.inputPanel.height)
+      }
+    };
+  }
+
+  /**
+   * Draw the basic interface structure with borders
+   */
+  drawInterface() {
+    // Clear screen with blue background  
+    this.terminal.clear();
+    this.terminal.bgBlue();
+    
+    // Fill entire screen with blue (with fallback dimensions for testing)
+    const width = this.terminal.width && isFinite(this.terminal.width) ? this.terminal.width : 80;
+    const height = this.terminal.height && isFinite(this.terminal.height) ? this.terminal.height : 24;
+    
+    for (let y = 1; y <= height; y++) {
+      this.terminal.moveTo(1, y);
+      this.terminal.white.bgBlue(" ".repeat(width));
     }
+    
+    // Draw panel borders
+    this.drawPanel("MUD Interaction (Terminal-Kit)", this.dimensions.mudPanel);
+    this.drawPanel("LLM Status & Plans", this.dimensions.statusPanel);
+    this.drawPanel("Debug Messages", this.dimensions.debugPanel);
+    this.drawPanel("User Input / Approval", this.dimensions.inputPanel);
+  }
 
-    // Create a full-screen background element to ensure complete blue coverage
-    this.backgroundElement = blessed.box({
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      style: {
-        bg: "blue",
-      },
-    });
-    this.screen.append(this.backgroundElement);
+  /**
+   * Draw a panel with border and title
+   */
+  drawPanel(title, dim) {
+    if (!dim || dim.width <= 0 || dim.height <= 0) return;
+    
+    // Draw simple border using terminal characters
+    // Top border
+    this.terminal.moveTo(dim.x, dim.y);
+    this.terminal.white.bgBlue("┌" + "─".repeat(dim.width - 2) + "┐");
+    
+    // Side borders
+    for (let y = 1; y < dim.height - 1; y++) {
+      this.terminal.moveTo(dim.x, dim.y + y);
+      this.terminal.white.bgBlue("│");
+      this.terminal.moveTo(dim.x + dim.width - 1, dim.y + y);
+      this.terminal.white.bgBlue("│");
+    }
+    
+    // Bottom border
+    this.terminal.moveTo(dim.x, dim.y + dim.height - 1);
+    this.terminal.white.bgBlue("└" + "─".repeat(dim.width - 2) + "┘");
+    
+    // Draw title
+    if (title && dim.width > title.length + 4) {
+      const titleX = dim.x + Math.floor((dim.width - title.length - 2) / 2);
+      this.terminal.moveTo(titleX, dim.y);
+      this.terminal.white.bgBlue(` ${title} `);
+    }
+  }
 
-    // Main MUD interaction panel - now takes top 60% of left column
-    this.mudPanel = blessed.box({
-      top: 0,
-      left: 0,
-      width: "70%",
-      height: "60%",
-      content: "Connecting to MUD...",
-      tags: true,
-      border: {
-        type: "line",
-      },
-      label: " MUD Interaction (Blue Mode) ",
-      style: {
-        fg: "bright-white",
-        bg: "blue",
-        border: {
-          bg: "blue",
-        },
-        label: {
-          fg: "bright-white",
-          bg: "blue",
-        },
-      },
-      scrollable: true,
-      alwaysScroll: true,
-      mouse: true,
-      keys: true,
-      scrollbar: {
-        ch: " ",
-        style: {
-          bg: "blue",
-        },
-      },
-    });
-
-    // Debug panel - now underneath main panel in left column (40% of left column)
-    this.debugPanel = blessed.box({
-      top: "60%",
-      left: 0,
-      width: "70%",
-      height: "40%",
-      content: "Debug: Ready",
-      tags: true,
-      border: {
-        type: "line",
-      },
-      style: {
-        fg: "bright-white",
-        bg: "blue",
-        border: {
-          bg: "blue",
-        },
-        label: {
-          fg: "bright-white",
-          bg: "blue",
-        },
-      },
-      scrollable: true,
-      alwaysScroll: true,
-      mouse: true,
-      keys: true,
-      scrollbar: {
-        ch: " ",
-        style: {
-          bg: "blue",
-        },
-      },
-      label: " Debug Messages ",
-    });
-
-    // Status panel - now takes top 60% of right column
-    this.statusPanel = blessed.box({
-      top: 0,
-      left: "70%",
-      width: "30%",
-      height: "60%",
-      content: "Status: Initializing...",
-      tags: true,
-      border: {
-        type: "line",
-      },
-      style: {
-        fg: "white",
-        bg: "blue",
-        border: {
-          bg: "blue",
-        },
-        label: {
-          fg: "bright-white",
-          bg: "blue",
-        },
-      },
-      scrollable: true,
-      alwaysScroll: true,
-      mouse: true,
-      keys: true,
-      scrollbar: {
-        ch: " ",
-        style: {
-          bg: "blue",
-        },
-      },
-      label: " LLM Status & Plans ",
-    });
-
-    // Input/approval area - now takes bottom 40% of right column
-    this.inputBox = blessed.box({
-      top: "60%",
-      left: "70%",
-      width: "30%",
-      height: "40%",
-      content: "Press Ctrl+C to quit. Waiting for MUD connection...",
-      tags: true,
-      border: {
-        type: "line",
-      },
-      style: {
-        fg: "bright-white",
-        bg: "blue",
-        border: {
-          bg: "blue",
-        },
-        label: {
-          fg: "bright-white",
-          bg: "blue",
-        },
-      },
-      scrollable: true,
-      alwaysScroll: true,
-      mouse: true,
-      keys: true,
-      scrollbar: {
-        ch: " ",
-        style: {
-          bg: "blue",
-        },
-      },
-      label: " User Input / Approval ",
-    });
-
-    // Add all panels to screen
-    this.screen.append(this.mudPanel);
-    this.screen.append(this.statusPanel);
-    this.screen.append(this.debugPanel);
-    this.screen.append(this.inputBox);
-
-    // Handle key presses
-    this.screen.key(["escape", "q", "C-c"], () => {
-      return process.exit(0);
-    });
-
-    // Handle Enter key for approval
-    this.screen.key(["enter"], () => {
-      if (this.waitingForApproval && this.approvalCallback) {
+  /**
+   * Set up keyboard event handlers
+   */
+  setupKeyHandlers() {
+    // Handle Ctrl+C and ESC to exit
+    this.terminal.on("key", (name) => {
+      if (name === "CTRL_C" || name === "ESCAPE" || name === "q") {
+        this.destroy();
+        process.exit(0);
+      }
+      
+      // Handle Enter for approval
+      if (name === "ENTER" && this.waitingForApproval && this.approvalCallback) {
         this.waitingForApproval = false;
-
+        
         // Log approval to file
         this.writeToLog("input", "Command approved. Processing...");
-
-        // Append processing message with timestamp (consistent with updateInputStatus)
+        
+        // Add processing message
         const timestamp = new Date().toLocaleTimeString();
-        const currentContent = this.inputBox.getContent();
-        this.inputBox.setContent(
-          currentContent +
-            `{bold}[${timestamp}]{/bold} Command approved. Processing...\n`,
-        );
-        this.inputBox.scrollTo(this.inputBox.getScrollHeight());
-        this.screen.render();
+        this.panels.input.push(`[${timestamp}] Command approved. Processing...`);
+        this.renderPanel("input");
+        
         this.approvalCallback();
         this.approvalCallback = null;
       }
     });
-
-    // Initial render
-    this.screen.render();
+    
+    // Handle terminal resize
+    this.terminal.on("resize", () => {
+      this.updateDimensions();
+      this.drawInterface();
+      this.renderAllPanels();
+    });
   }
 
   /**
@@ -282,97 +233,163 @@ class TUI {
   }
 
   /**
+   * Render a specific panel's content
+   */
+  renderPanel(panelName) {
+    const dim = this.dimensions[panelName + "Panel"];
+    const content = this.panels[panelName];
+    
+    if (!dim || !content) return;
+    
+    // Clear panel content area (inside border)
+    const contentArea = {
+      x: dim.x + 1,
+      y: dim.y + 1,
+      width: dim.width - 2,
+      height: dim.height - 2
+    };
+    
+    // Clear the content area
+    for (let y = 0; y < contentArea.height; y++) {
+      this.terminal.moveTo(contentArea.x, contentArea.y + y);
+      this.terminal.white.bgBlue(" ".repeat(contentArea.width));
+    }
+    
+    // Render content lines (show last N lines that fit)
+    const visibleLines = Math.max(0, contentArea.height);
+    const startIndex = Math.max(0, content.length - visibleLines);
+    const linesToShow = content.slice(startIndex);
+    
+    linesToShow.forEach((line, index) => {
+      const y = contentArea.y + index;
+      if (y < contentArea.y + contentArea.height) {
+        this.terminal.moveTo(contentArea.x, y);
+        // Truncate line if too long
+        const truncatedLine = line.length > contentArea.width 
+          ? line.substring(0, contentArea.width - 3) + "..."
+          : line;
+        this.terminal.white.bgBlue(truncatedLine);
+      }
+    });
+  }
+
+  /**
+   * Render all panels
+   */
+  renderAllPanels() {
+    this.renderPanel("mud");
+    this.renderPanel("status");
+    this.renderPanel("debug");
+    this.renderPanel("input");
+  }
+
+  /**
    * Display MUD output in the main panel
    */
   showMudOutput(output) {
-    if (!this.mudPanel) return;
-
     this.writeToLog("mud", output);
-
-    // Append to existing content
-    const currentContent = this.mudPanel.getContent();
-    this.mudPanel.setContent(`${currentContent}${output}`);
-    this.mudPanel.scrollTo(this.mudPanel.getScrollHeight());
-    this.screen.render();
+    
+    // Split output into lines and add to panel
+    const lines = output.split("\n");
+    lines.forEach(line => {
+      if (line.trim()) {
+        this.panels.mud.push(line);
+      }
+    });
+    
+    // Keep panel size manageable
+    if (this.panels.mud.length > 1000) {
+      this.panels.mud = this.panels.mud.slice(-500);
+    }
+    
+    this.renderPanel("mud");
   }
+
+  /**
+   * Display MUD input in the main panel
+   */
   showMudInput(input) {
-    if (!this.mudPanel) return;
-
     this.writeToLog("mud", input);
-
-    // Append to existing content
-    const currentContent = this.mudPanel.getContent();
-    this.mudPanel.setContent(`${currentContent}{bold}${input}{/bold}\n`);
-    this.mudPanel.scrollTo(this.mudPanel.getScrollHeight());
-    this.screen.render();
+    
+    // Add input as bold line
+    this.panels.mud.push(`> ${input}`);
+    
+    // Keep panel size manageable
+    if (this.panels.mud.length > 1000) {
+      this.panels.mud = this.panels.mud.slice(-500);
+    }
+    
+    this.renderPanel("mud");
   }
 
   /**
    * Display LLM status, plans, and reasoning
    */
   showLLMStatus(data) {
-    if (!this.statusPanel) return;
-
     const timestamp = new Date().toLocaleTimeString();
-    let content = `{bold}[${timestamp}]{/bold}\n`;
+    let content = [`[${timestamp}]`];
     let logContent = "";
 
     if (data.contextInfo) {
-      content += `{cyan-fg}💭 ${data.contextInfo}{/cyan-fg}\n`;
+      content.push(`💭 ${data.contextInfo}`);
       logContent += `💭 ${data.contextInfo}\n`;
     }
 
     if (data.plan) {
-      content += `{yellow-fg}📋 Plan:{/yellow-fg} ${data.plan}\n`;
+      content.push(`📋 Plan: ${data.plan}`);
       logContent += `📋 Plan: ${data.plan}\n`;
     }
 
     if (data.nextStep) {
-      content += `{green-fg}➡️  Next Step:{/green-fg} ${data.nextStep}\n`;
+      content.push(`➡️  Next Step: ${data.nextStep}`);
       logContent += `➡️  Next Step: ${data.nextStep}\n`;
     }
 
     if (data.command) {
-      content += `{white-fg}🎮 Command:{/white-fg} ${data.command}\n`;
+      content.push(`🎮 Command: ${data.command}`);
       logContent += `🎮 Command: ${data.command}\n`;
     }
 
     if (data.error) {
-      content += `{red-fg}❌ Error:{/red-fg} ${data.error}\n`;
+      content.push(`❌ Error: ${data.error}`);
       logContent += `❌ Error: ${data.error}\n`;
     }
-
-    content += "\n";
 
     // Log to file
     if (logContent) {
       this.writeToLog("status", logContent.trim());
     }
 
-    // Append to existing content
-    const currentContent = this.statusPanel.getContent();
-    this.statusPanel.setContent(currentContent + content);
-    this.statusPanel.scrollTo(this.statusPanel.getScrollHeight());
-    this.screen.render();
+    // Add to status panel
+    this.panels.status.push(...content, "");
+    
+    // Keep panel size manageable
+    if (this.panels.status.length > 1000) {
+      this.panels.status = this.panels.status.slice(-500);
+    }
+
+    this.renderPanel("status");
   }
 
   /**
    * Display debug messages
    */
   showDebug(message) {
-    if (!this.debugPanel) return;
-
     const timestamp = new Date().toLocaleTimeString();
-    const content = `{bold}[${timestamp}]{/bold} ${message}\n`;
+    const content = `[${timestamp}] ${message}`;
 
     // Log to file
     this.writeToLog("debug", message);
 
-    // Append to existing content
-    const currentContent = this.debugPanel.getContent();
-    this.debugPanel.setContent(currentContent + content);
-    this.debugPanel.scrollTo(this.debugPanel.getScrollHeight());
-    this.screen.render();
+    // Add to debug panel
+    this.panels.debug.push(content);
+    
+    // Keep panel size manageable
+    if (this.panels.debug.length > 1000) {
+      this.panels.debug = this.panels.debug.slice(-500);
+    }
+
+    this.renderPanel("debug");
   }
 
   /**
@@ -383,7 +400,7 @@ class TUI {
       this.waitingForApproval = true;
       this.approvalCallback = resolve;
 
-      // Approve after a small delay to avoid flooding
+      // Auto-approve after delay to avoid flooding
       const ms = this.behavior?.commandDelayMs || 2000;
       this.showDebug(`Auto-approving in ${ms / 1000} seconds...`);
       setTimeout(() => {
@@ -398,57 +415,55 @@ class TUI {
       // Log to file
       this.writeToLog("input", `APPROVAL REQUIRED: ${message}`);
 
-      // Append approval prompt with clear visual separator (consistent with other methods)
+      // Add approval prompt
       const timestamp = new Date().toLocaleTimeString();
-      const currentContent = this.inputBox.getContent();
-      const separator = "\n" + "━".repeat(35) + "\n";
-      const promptContent = `${separator}{bold}[${timestamp}] APPROVAL REQUIRED{/bold}\n${message}\n\n{bold}{yellow-fg}Press ENTER to approve, or Ctrl+C to quit{/yellow-fg}{/bold}\n`;
-      this.inputBox.setContent(currentContent + promptContent);
-      this.inputBox.scrollTo(this.inputBox.getScrollHeight());
-      this.screen.render();
+      this.panels.input.push(
+        "─".repeat(35),
+        `[${timestamp}] APPROVAL REQUIRED`,
+        message,
+        "",
+        "Press ENTER to approve, or Ctrl+C to quit"
+      );
+
+      this.renderPanel("input");
     });
   }
 
   /**
-   * Clear the input box content properly
+   * Clear the input box content
    */
   clearInputBox() {
-    if (!this.inputBox) return;
-
-    // Multiple approaches to ensure clearing works with blessed.js
-    this.inputBox.setContent("");
-    this.inputBox.setScrollPerc(0);
-    // Force a repaint by temporarily hiding and showing
-    this.inputBox.hide();
-    this.screen.render();
-    this.inputBox.show();
-    this.screen.render();
+    this.panels.input = [];
+    this.renderPanel("input");
   }
 
   /**
    * Update the input box with a message
    */
   updateInputStatus(message) {
-    if (!this.inputBox) return;
-
     // Log to file
     this.writeToLog("input", message);
 
-    // Append to existing content with timestamp and separator for better readability
+    // Add to input panel with timestamp
     const timestamp = new Date().toLocaleTimeString();
-    const newContent = `{bold}[${timestamp}]{/bold} ${message}\n`;
-    const currentContent = this.inputBox.getContent();
-    this.inputBox.setContent(currentContent + newContent);
-    this.inputBox.scrollTo(this.inputBox.getScrollHeight());
-    this.screen.render();
+    this.panels.input.push(`[${timestamp}] ${message}`);
+    
+    // Keep panel size manageable
+    if (this.panels.input.length > 1000) {
+      this.panels.input = this.panels.input.slice(-500);
+    }
+
+    this.renderPanel("input");
   }
 
   /**
    * Destroy the TUI and clean up
    */
   destroy() {
-    if (this.screen) {
-      this.screen.destroy();
+    if (this.terminal) {
+      this.terminal.hideCursor(false);
+      this.terminal.fullscreen(false);
+      this.terminal.processExit();
     }
   }
 }
