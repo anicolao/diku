@@ -3,7 +3,7 @@
  * Provides a fancy TUI layout with separate panels for MUD interaction, status, and debug
  */
 
-const blessed = require("neo-neo-bblessed");
+const blessed = require("blessed");
 const fs = require("fs");
 const path = require("path");
 
@@ -58,13 +58,17 @@ class TUI {
    * Initialize the blessed screen and create UI layout
    */
   initializeScreen() {
-    // Force color support and create main screen with blue background everywhere
+    // Create main screen with improved configuration to reduce corruption
     this.screen = blessed.screen({
       smartCSR: true,
       title: "Diku MUD AI Player",
       fullUnicode: true,
       dockBorders: true,
       warnings: false,
+      autoPadding: true,
+      fastCSR: true,
+      sendFocus: false,
+      useBCE: true,
       style: {
         bg: "blue",
         fg: "white",
@@ -72,7 +76,7 @@ class TUI {
     });
 
     // Force color mode if terminal doesn't detect it properly
-    if (this.screen.tput.colors < 256) {
+    if (this.screen.tput && this.screen.tput.colors < 256) {
       this.screen.tput.colors = 256;
     }
 
@@ -254,6 +258,7 @@ class TUI {
           currentContent +
             `{bold}[${timestamp}]{/bold} Command approved. Processing...\n`,
         );
+        this.inputBox.scrollTo(this.inputBox.getScrollHeight());
         this.screen.render();
         this.approvalCallback();
         this.approvalCallback = null;
@@ -291,6 +296,7 @@ class TUI {
     // Append to existing content
     const currentContent = this.mudPanel.getContent();
     this.mudPanel.setContent(`${currentContent}${output}`);
+    this.mudPanel.scrollTo(this.mudPanel.getScrollHeight());
     this.screen.render();
   }
   showMudInput(input) {
@@ -301,6 +307,7 @@ class TUI {
     // Append to existing content
     const currentContent = this.mudPanel.getContent();
     this.mudPanel.setContent(`${currentContent}{bold}${input}{/bold}\n`);
+    this.mudPanel.scrollTo(this.mudPanel.getScrollHeight());
     this.screen.render();
   }
 
@@ -349,6 +356,7 @@ class TUI {
     // Append to existing content
     const currentContent = this.statusPanel.getContent();
     this.statusPanel.setContent(currentContent + content);
+    this.statusPanel.scrollTo(this.statusPanel.getScrollHeight());
     this.screen.render();
   }
 
@@ -367,6 +375,7 @@ class TUI {
     // Append to existing content
     const currentContent = this.debugPanel.getContent();
     this.debugPanel.setContent(currentContent + content);
+    this.debugPanel.scrollTo(this.debugPanel.getScrollHeight());
     this.screen.render();
   }
 
@@ -399,6 +408,7 @@ class TUI {
       const separator = "\n" + "━".repeat(35) + "\n";
       const promptContent = `${separator}{bold}[${timestamp}] APPROVAL REQUIRED{/bold}\n${message}\n\n{bold}{yellow-fg}Press ENTER to approve, or Ctrl+C to quit{/yellow-fg}{/bold}\n`;
       this.inputBox.setContent(currentContent + promptContent);
+      this.inputBox.scrollTo(this.inputBox.getScrollHeight());
       this.screen.render();
     });
   }
@@ -411,6 +421,7 @@ class TUI {
 
     // Multiple approaches to ensure clearing works with blessed.js
     this.inputBox.setContent("");
+    this.inputBox.setScrollPerc(0);
     // Force a repaint by temporarily hiding and showing
     this.inputBox.hide();
     this.screen.render();
@@ -432,6 +443,7 @@ class TUI {
     const newContent = `{bold}[${timestamp}]{/bold} ${message}\n`;
     const currentContent = this.inputBox.getContent();
     this.inputBox.setContent(currentContent + newContent);
+    this.inputBox.scrollTo(this.inputBox.getScrollHeight());
     this.screen.render();
   }
 
