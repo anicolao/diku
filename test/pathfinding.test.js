@@ -230,7 +230,7 @@ Down  - Solace Square
 
       characterManager.updateRoomMap(character, exitsOutput);
 
-      const roomId = "on_a_vallenwood_tree_above_solace_square_the_sturdy_boughs_of_this_particularly_huge_vallenwood_tree_extend_to_DENSUW";
+      const roomId = "on_a_vallenwood_tree_above_solace_square_the_sturdy_boughs_of_this_particularly_huge_vallenwood_tree_extend_to_both_the_north_and_south_DENSUW";
       const room = character.roomMap[roomId];
       
       expect(room).toBeDefined();

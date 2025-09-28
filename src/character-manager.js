@@ -431,11 +431,22 @@ class CharacterManager {
   }
 
   /**
+   * Normalize text by splitting on whitespace and replacing each block with single underscore
+   */
+  normalizeTextForId(text) {
+    if (!text) return "";
+    return text.toLowerCase()
+      .split(/\s+/)
+      .filter(word => /[a-z0-9]/.test(word))
+      .join("_");
+  }
+
+  /**
    * Generate enhanced room ID from room name, first sentence of description, and exits
    */
   generateRoomId(roomName, firstSentence, exits) {
-    const titlePart = roomName.toLowerCase().replace(/[^a-z0-9]/g, "_");
-    const sentencePart = firstSentence ? firstSentence.toLowerCase().replace(/[^a-z0-9]/g, "_") : "";
+    const titlePart = this.normalizeTextForId(roomName);
+    const sentencePart = this.normalizeTextForId(firstSentence);
     
     // Create exits abbreviation by sorting exits and removing door indicators
     const exitsAbbrev = [...exits].sort().join("").replace(/[()]/g, "");
@@ -485,7 +496,8 @@ class CharacterManager {
       ) {
         roomName = cleanLine;
         
-        // Look for first sentence in subsequent lines
+        // Look for first sentence in subsequent lines - collect all text until first period
+        let accumulatedText = "";
         for (let j = i + 1; j < lines.length; j++) {
           const descLine = lines[j].trim();
           
@@ -501,18 +513,20 @@ class CharacterManager {
           // Skip command prompts (like "> exits")
           if (descLine.includes(">")) continue;
           
-          // Look for first sentence ending with period
-          const sentenceMatch = descLine.match(/^([^.]+\.)/);
-          if (sentenceMatch) {
-            roomFirstSentence = sentenceMatch[1].replace(/\.$/, "").trim();
-            break;
-          }
+          // Accumulate text and check for period
+          accumulatedText += (accumulatedText ? " " : "") + descLine;
           
-          // If no period found but this looks like a description line, use the whole line
-          if (!roomFirstSentence && descLine.length > 10) {
-            roomFirstSentence = descLine;
+          // Check if we found the end of the first sentence
+          const periodIndex = accumulatedText.indexOf(".");
+          if (periodIndex !== -1) {
+            roomFirstSentence = accumulatedText.substring(0, periodIndex).trim();
             break;
           }
+        }
+        
+        // If no period found but we have accumulated text, use it
+        if (!roomFirstSentence && accumulatedText && accumulatedText.length > 10) {
+          roomFirstSentence = accumulatedText.trim();
         }
         break;
       }
