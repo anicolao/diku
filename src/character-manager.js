@@ -431,12 +431,26 @@ class CharacterManager {
   }
 
   /**
+   * Generate enhanced room ID from room name, first sentence of description, and exits
+   */
+  generateRoomId(roomName, firstSentence, exits) {
+    const titlePart = roomName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    const sentencePart = firstSentence ? firstSentence.toLowerCase().replace(/[^a-z0-9]/g, "_") : "";
+    
+    // Create exits abbreviation by sorting exits and removing door indicators
+    const exitsAbbrev = [...exits].sort().join("").replace(/[()]/g, "");
+    
+    return [titlePart, sentencePart, exitsAbbrev].filter(part => part).join("_");
+  }
+
+  /**
    * Update room map based on MUD output
    */
   updateRoomMap(character, mudOutput) {
     // Simple room detection - look for room names and exits
     const lines = mudOutput.split("\n");
     let roomName = null;
+    let roomFirstSentence = null;
     let exits = [];
     let exitConnections = {}; // Store connections from exits command
 
@@ -470,6 +484,36 @@ class CharacterManager {
         !cleanLine.includes(".") // Skip sentences/descriptions
       ) {
         roomName = cleanLine;
+        
+        // Look for first sentence in subsequent lines
+        for (let j = i + 1; j < lines.length; j++) {
+          const descLine = lines[j].trim();
+          
+          // Skip empty lines
+          if (!descLine) continue;
+          
+          // Stop if we hit the status line
+          if (descLine.includes("H ") && descLine.includes("V ")) break;
+          
+          // Stop if we hit "Obvious exits:" 
+          if (descLine.includes("Obvious exits:")) break;
+          
+          // Skip command prompts (like "> exits")
+          if (descLine.includes(">")) continue;
+          
+          // Look for first sentence ending with period
+          const sentenceMatch = descLine.match(/^([^.]+\.)/);
+          if (sentenceMatch) {
+            roomFirstSentence = sentenceMatch[1].replace(/\.$/, "").trim();
+            break;
+          }
+          
+          // If no period found but this looks like a description line, use the whole line
+          if (!roomFirstSentence && descLine.length > 10) {
+            roomFirstSentence = descLine;
+            break;
+          }
+        }
         break;
       }
     }
@@ -504,7 +548,7 @@ class CharacterManager {
             
             // Skip creating connections for dark rooms - handle them with fallback movement tracking
             if (destinationName !== "Too dark to tell") {
-              // Generate destination room ID from name
+              // Generate destination room ID from name (simplified, no description/exits available)
               const destinationId = destinationName.toLowerCase().replace(/[^a-z0-9]/g, "_");
               exitConnections[shortDir] = {
                 roomId: destinationId,
@@ -516,11 +560,11 @@ class CharacterManager {
       }
     } else {
       // Fallback: Extract exits from status line
-      const exitMatch = mudOutput.match(/Exits:([NSEWUD,\s]+)/);
+      const exitMatch = mudOutput.match(/Exits:([NSEWUD(),\s]+)/);
       if (exitMatch) {
-        // Extract individual direction letters, removing commas and spaces
-        exits = exitMatch[1]
-          .replace(/[,\s]/g, "")
+        // Extract individual direction letters, removing commas, spaces, and door indicators
+        const exitStr = exitMatch[1].replace(/[(),\s]/g, "");
+        exits = exitStr
           .split("")
           .filter((exit) => "NSEWUD".includes(exit));
       }
@@ -528,8 +572,8 @@ class CharacterManager {
 
     // If we found room information, update the map
     if (roomName) {
-      // Generate a simple room ID based on room name
-      const roomId = roomName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      // Generate enhanced room ID using room name, first sentence, and exits
+      const roomId = this.generateRoomId(roomName, roomFirstSentence, exits);
 
       // Check if this is a new room
       const isNewRoom = !character.roomMap[roomId];

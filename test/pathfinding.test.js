@@ -230,7 +230,7 @@ Down  - Solace Square
 
       characterManager.updateRoomMap(character, exitsOutput);
 
-      const roomId = "on_a_vallenwood_tree_above_solace_square";
+      const roomId = "on_a_vallenwood_tree_above_solace_square_the_sturdy_boughs_of_this_particularly_huge_vallenwood_tree_extend_to_DENSUW";
       const room = character.roomMap[roomId];
       
       expect(room).toBeDefined();
@@ -290,9 +290,33 @@ Down  - Solace Square
 
       // The old "short_tree" should be removed and connections updated
       expect(character.roomMap["short_tree"]).toBeUndefined();
-      expect(character.roomMap["starting_room"].connections["D"]).toBe("climbing_a_huge_vallenwood_tree");
-      expect(character.roomMap["climbing_a_huge_vallenwood_tree"]).toBeDefined();
-      expect(character.roomMap["climbing_a_huge_vallenwood_tree"].name).toBe("Climbing a Huge Vallenwood Tree");
+      expect(character.roomMap["starting_room"].connections["D"]).toBe("climbing_a_huge_vallenwood_tree_you_are_climbing_up_this_massive_vallenwood_tree_DU");
+      expect(character.roomMap["climbing_a_huge_vallenwood_tree_you_are_climbing_up_this_massive_vallenwood_tree_DU"]).toBeDefined();
+      expect(character.roomMap["climbing_a_huge_vallenwood_tree_you_are_climbing_up_this_massive_vallenwood_tree_DU"].name).toBe("Climbing a Huge Vallenwood Tree");
+    });
+
+    test("should handle doors in exit format correctly", () => {
+      const character = characterManager.getCharacter(testCharacterId);
+      const mudOutputWithDoors = `
+Sample Room
+   This would be a boring sample room. There is more description.
+An NPC is standing here.
+A pile of coins is on the floor.
+
+67H 200V 2500X 15.3% 50C T:45 Exits:N(E)W
+      `;
+
+      characterManager.updateRoomMap(character, mudOutputWithDoors);
+
+      expect(Object.keys(character.roomMap).length).toBe(1);
+      const roomId = Object.keys(character.roomMap)[0];
+      const room = character.roomMap[roomId];
+      
+      // Should strip doors from room ID exits abbreviation
+      expect(roomId).toBe("sample_room_this_would_be_a_boring_sample_room_ENW");
+      expect(room.name).toBe("Sample Room");
+      // Exits array should contain N, E, W (doors stripped)
+      expect(room.exits).toEqual(["N", "E", "W"]);
     });
 
     test("should handle 'Too dark to tell' exits without creating connections", () => {
@@ -311,7 +335,7 @@ West  - Western Hallway
 
       characterManager.updateRoomMap(character, darkExitsOutput);
 
-      const roomId = "mysterious_room";
+      const roomId = "mysterious_room_this_room_is_dimly_lit_with_shadows_in_every_corner_ENSW";
       const room = character.roomMap[roomId];
       
       expect(room).toBeDefined();
