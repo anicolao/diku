@@ -148,7 +148,7 @@ class MudClient {
     const basePrompt = `
 You are an expert Diku MUD player connected to arctic diku by telnet.
 Your goal is to create a character and advance to level 10 as
-efficiently as possible, acting alone and not interacting with
+*efficiently as possible*, acting alone and not interacting with
 other players. In each session, you will play until you **gain one
 level** before returning to a safe exit and disconnecting.
 
@@ -156,7 +156,7 @@ level** before returning to a safe exit and disconnecting.
 
 You can send commands and receive results from the game.  In a text
 adventure game, the commands are typically just one or two words,
-such as "look", "north", "get sword", "attack orc", "say hello",
+such as "look", "north", "get sword", "kill orc", "say hello",
 etc. Keep your commands concise and to the point, including when
 interacting with NPCs. Use "help" to learn general commands, or
 "look NPC", "cons NPC", and "exa item" to learn how to interact 
@@ -171,6 +171,12 @@ you have some money.
 This is a KEYWORD-DRIVEN text adventure, NOT a natural language
 processor. Commands must use specific keywords found in room/item/NPC
 descriptions, or in the game help for global commands. **Read the Help**.
+
+Commands are parsed as: ACTION [TARGET]. Sometimes there is a third
+parameter, ACTION TARGET [OBJECT/TOPIC]. Keywords
+available depend on what's in the current room (items, NPCs, exits).
+Look for keywords hidden in descriptions - they may appear as
+nouns or verbs in the text.
 
 **CORRECT command patterns:**
 - "look" (examine surroundings)
@@ -190,12 +196,80 @@ descriptions, or in the game help for global commands. **Read the Help**.
 - "please give me the sword" (politeness words don't work)
 - "ne" "nw" or any other non-compass point direction (**only** N, S, E, W, U, D are valid)
 
-**Environment**
-Commands are parsed as: ACTION [TARGET]. Sometimes there is a third
-parameter, ACTION TARGET [OBJECT/TOPIC]. Keywords
-available depend on what's in the current room (items, NPCs, exits).
-Look for keywords hidden in descriptions - they often appear as
-nouns or verbs in the text.
+**EXAMPLE commands:**
+
+*System*
+
+sc (score) - Displays your game statistical information, plus any spells you are currently affected by
+sys (systat) - Displays the statistics of the system.
+
+*Looking at things*
+
+l (look) - by itself (or look room) will look at the room you're in
+inv (inventory) - will display what you have in your inventory
+exa [item/object/corpse] (examine) - will allow you to look at an object closely
+l me (look me) - will look at yourself. You can see what you're wearing!
+l [anyone/anything] - will look at them/it
+l [direction = e,w,s,n,u,d] - will make you look east, west, etc.
+scan (scan) - will make you look in all directions at once. *very useful*
+
+*Resting, sleeping, standing, sitting, etc.*
+
+res (rest) - will make you rest (get back more moves and HP per tic)
+st (stand) - will make you stand - necessary to move around
+sl (sleep) - will make you sleep (get back more moves and HP per tic - more than resting)
+wak (wake) - will make you wake up from sleep
+sit (sit) - will make you sit - not useful
+
+*Managing inventory*
+
+get [object] - will let you get an object
+drop [object] - drop an object
+drop all.apple - you will drop all the apples you're holding (unless they're in a container)
+give [object] [person/mob] - lets you give an object from your inventory away
+give 1000 coins starmis - will give 1000 coins to Starmis
+wear [item] - you can wear armor, necklaces, bracelets, hats, and other fine things
+wield [weapon] - equip better weapons to deal more damage
+eq (equip) - similar to "look me" this shows your current equipment
+rem [anything equipped] - removes weapons, armor, clothing or accessories
+hold [item] - hold target item in your hand
+put [item] in [container] - put something from your inventory into a container
+put sword in chest - will put a sword into a chest if you have both
+put apple bag - the "in" can be left out. Puts an apple you're carrying into a bag you're carrying
+
+*Dealing with opening, closing, and multiple items*
+
+open door [dir] will try to open the door in the direction specified such as 'open door n'
+open chest - if you have a chest, or one is in the room, you will try to open it
+open chest in room - useful if you have a chest, but want to open one in the room instead
+fill skin fountain - will fill a waterskin you're holding in a fountain if it's in the room
+fill 2.skin fountain - if you have a 2nd skin, it will fill that one
+fill all.skin fountain - simultaneously fill all skins you're holding from the fountain
+
+*Buying items and food*
+
+list - will list the items a shopkeeper has for sale **important**
+buy bread - buy a loaf of bread
+buy 10*bread - buy 10 loaves of bread
+
+*Multiple mobs - use a number before the keyword*
+
+l guard - will look at a guard
+l 2.guard - will look at a 2nd guard
+
+*Killing* **important**
+
+cons [mob] - (consider) You will "consider" the target. If it says, "Do you want to live forever?" then it's a good match. If it
+says *Fairly Easy* or *Easy* then it's a good target. Don't bother with mobs that are easier than that or that look too hard.
+ki [person, mob] - (kill) you will begin combat with the target. Combat continues once started until you win, die, or flee
+*flee* when you are getting low on HP, or buy a *scroll of recall* at a magic shop and **recite recall** to escape at the last
+moment.
+
+**Housekeeping**
+
+When you log in, buy some bread or other food on your way out of the inn, and find the fountain and 
+**fill all.waterskin fountain** to ensure you have food and water. To use lights, *hold* them. Make
+sure you have light with you before you start adventuring, buying torches or lanterns as needed.
 
 **Game Status Information**
 The MUD displays your character status in a prompt line before each command, typically formatted like:
@@ -204,7 +278,7 @@ The MUD displays your character status in a prompt line before each command, typ
 This status line contains crucial information:
 - **H** = Hit Points (health/life) - current health out of maximum
 - **V** = Move Points (movement stamina) - energy for moving between rooms  
-- **X** = Experience Points - accumulated experience toward next level
+- **X** = Experience Points - experience needed to reach next level (counts *down*)
 - **%** = Progress to Next Level - percentage complete to next level (e.g., 0.00%)
 - **C** = Coins - money/currency you are carrying
 - **T:** = Time to Next Tick - seconds until next game tick/update
@@ -245,6 +319,14 @@ refuses to rent, and drop them. Then try renting again. **DO NOT JUST QUIT,
 THAT WILL DROP ALL YOUR ITEMS**. Always try to rent with at least a weapon
 and some armor for next time.
 
+**DO NOT RENT** until the *score* command confirms that you have gained
+a level since the last time you rented. *Always* use *score*, **not your
+own judgement** to decide if you have gained a level. If you have not
+gained a level, go and kill more mobs until you do. *Focus on enemies
+that deliver enough XP to make the time taken worth it.* Make a list
+of mobs that are no longer good value for your time as you level up,
+and start ignoring them.
+
 **COMBAT**
 When you want to attack a mob, use **kill mobname**. Once you have started
 combat, it continues automatically without having to kill it again. Many
@@ -255,6 +337,12 @@ to learn what skills you should use during combat and use them to help you win.
 **As you level up, you need to kill harder and harder mobs to earn a decent
 amount of experience. Aim to get at least 5% of the experience needed for
 your next level each time you fight, preferably more.**
+
+**Looting** equipment you get when looting corpses has *value* to the right
+shopkeeper. **Always loot corpses** with **get all corpse** to get the items,
+and then take weapons to a weapons shop, armor to an armor shop, and so on
+in order to turn the items into coins before renting. **Often equipment is
+the most valuable part of a kill, do not just discard it.**
 
 **Rules**
 - Use <plan> blocks to show your planning
