@@ -149,8 +149,8 @@ class MudClient {
 You are an expert Diku MUD player connected to arctic diku by telnet.
 Your goal is to create a character and advance to level 10 as
 efficiently as possible, acting alone and not interacting with
-other players. In each session, you will play for one hour before
-returning to a safe exit and disconnecting.
+other players. In each session, you will play until you **gain one
+level** before returning to a safe exit and disconnecting.
 
 **Environment**
 
@@ -163,7 +163,7 @@ interacting with NPCs. Use "help" to learn general commands, or
 with an NPC or items. Each NPC has their own set of commands.
 
 The game is very basic, focus on finding easy monsters to kill
-and training at the guildmasters. Avoid complex quests or
+and learning at the guildmasters. Avoid complex quests or
 interactions with other players. You can buy basic equipment once 
 you have some money.
 
@@ -176,7 +176,7 @@ descriptions, or in the game help for global commands. **Read the Help**.
 - "look" (examine surroundings)
 - "north" or "n" (movement)
 - "get sword" (action + target)
-- "attack orc" (action + target) 
+- "kill orc" (action + target) 
 - "listen guide" (action + NPC)
 - "give sword girl" (action + item + target)
 - "get all"
@@ -218,10 +218,14 @@ Monitor these values carefully to track your character's condition and plan acti
 - **Remember landmark locations** like shops, guilds, temples, and training areas
 - **Use cardinal directions only**: N, S, E, W, U (up), D (down) - never NE, NW, etc.
 - **If movement fails**, the MUD will tell you "You can't go that way" - try different exits
-- **Create mental maps** by remembering connections between rooms
+- **Create mental maps** by remembering connections between rooms. Use /wayfind and /point to help.
 - **Record important paths** in your memory for future navigation
 - **Use descriptive room features** to distinguish similar areas
 - **Rent at the receptionist/inn** From Solace Square, the path is U W W N N U
+- **Learn** at a guildmaster. From **reception**, the Warrior Guildmaster is D S S E E S U W. 
+- **If you are having trouble finding a place, use /wayfind or /point commands.**
+- **Use your memory function to record the room names of important locations you discover, so you can find
+  them later with /wayfind.**
 
 **Navigation Helper Commands**
 - **Use \`/point <destination>\` to get the next step** to reach a location you've visited before
@@ -233,6 +237,24 @@ Monitor these values carefully to track your character's condition and plan acti
 **Workflow**
 1. **Plan**: Create a short term plan of what you want to accomplish. Display it in a <plan>Your plan here</plan> block.
 2. **Command**: Send a <command>your command</command> block which contains **one command** to be transmitted to the server
+
+**RENTING (IMPORTANT)**
+Before quitting, always rent at the inn to save your items. If you can't
+rent, use **offer** or **rent** and look for items that the receptionist
+refuses to rent, and drop them. Then try renting again. **DO NOT JUST QUIT,
+THAT WILL DROP ALL YOUR ITEMS**. Always try to rent with at least a weapon
+and some armor for next time.
+
+**COMBAT**
+When you want to attack a mob, use **kill mobname**. Once you have started
+combat, it continues automatically without having to kill it again. Many
+skills can be used in combat, for example if you're a warrior you can **Bash**
+or **Kick** to deal extra damage during combat. Use **help** at your guildmaster
+to learn what skills you should use during combat and use them to help you win.
+
+**As you level up, you need to kill harder and harder mobs to earn a decent
+amount of experience. Aim to get at least 5% of the experience needed for
+your next level each time you fight, preferably more.**
 
 **Rules**
 - Use <plan> blocks to show your planning
@@ -251,10 +273,16 @@ Monitor these values carefully to track your character's condition and plan acti
 - **Directions are square compass points N, S, E, W, U, D** NE, NW, etc are almost **never valid**.
 - **Never insist on giving a failed command twice.**
 - **list** to list the items for sale in a shop
-- **rent** to save your items when you quit, at a receptionist/inn
+- **IF you cannot afford to RENT, SELL YOUR ITEMS FIRST**. **AVOID JUST DROPPING GOOD ITEMS**. Either adventure for longer to get coins, or sell your items.
+- **IF YOU ARE LOST OR CONFUSED, USE /wayfind TO FIND YOUR WAY**
+- **rent** to save your items when you are done, at a receptionist/inn. **DO NOT QUIT** if you can avoid it, always **RENT**. Before
+renting, check your **score** and update your character info.
 - **Eat or drink when you are hungry or thirsty**. Check inventory for food/water.
 - **Try to remember directions to locations you want to get back to**. Do not constantly
 go back and forth between two adjacent rooms; explore and find useful locations.
+- **Learn skills at guildmasters**. On each login visit your guildmaster and ensure you have done *learn all*.
+- **Buy or find better equipment**. On each login, check your equipment with *eq* and inventory with *i* commands. Buy new
+equipment and food if you have enough money.
 `;
 
     // Add character-specific context if a character is selected
@@ -471,7 +499,9 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
 
       // If movement was successful, automatically send "exits" command to get room connectivity info
       if (success) {
-        this.tui.showDebug("🗺️ Movement successful, sending automatic 'exits' command");
+        this.tui.showDebug(
+          "🗺️ Movement successful, sending automatic 'exits' command",
+        );
         this.awaitingExitsResponse = true;
         // Send exits command immediately after successful movement
         setTimeout(() => {
@@ -489,17 +519,21 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     // Check if this output contains "Obvious exits:" response from automatic exits command
     const isExitsResponse = output.includes("Obvious exits:");
     if (this.awaitingExitsResponse && isExitsResponse) {
-      this.tui.showDebug("📋 Processing automatic exits response for room mapping");
+      this.tui.showDebug(
+        "📋 Processing automatic exits response for room mapping",
+      );
       this.awaitingExitsResponse = false;
-      
+
       // Process for room mapping and continue to send to LLM for planning
       if (this.currentCharacterId) {
-        const character = this.characterManager.getCharacter(this.currentCharacterId);
+        const character = this.characterManager.getCharacter(
+          this.currentCharacterId,
+        );
         if (character) {
           this.characterManager.updateRoomMap(character, output);
         }
       }
-      
+
       // Continue with normal processing to send exits info to LLM for planning
     }
 
