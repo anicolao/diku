@@ -52,7 +52,7 @@ class CharacterManager {
         }
       }
     } catch (error) {
-      console.error(
+      this.debug(
         `Warning: Could not load characters from ${this.dataFile}: ${error.message}`,
       );
       this.characters = {};
@@ -81,7 +81,7 @@ class CharacterManager {
         }
       }
     } catch (error) {
-      console.error(
+      this.debug(
         `Warning: Failed to rotate backups for ${this.dataFile}: ${error.message}`,
       );
       // Continue with save even if backup rotation fails
@@ -109,7 +109,7 @@ class CharacterManager {
       );
       return true;
     } catch (error) {
-      console.error(
+      this.debug(
         `Error saving characters to ${this.dataFile}: ${error.message}`,
       );
       return false;

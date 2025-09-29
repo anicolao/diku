@@ -9,17 +9,40 @@ const { Command } = require("commander");
 const MudClient = require("./client");
 const CharacterManager = require("./character-manager");
 const CharacterSelector = require("./character-selector");
+const TUI = require("./tui");
+
+// Simple logger that can work before TUI is available
+const logger = {
+  tui: null,
+  setTUI(tui) {
+    this.tui = tui;
+  },
+  log(message) {
+    if (this.tui && this.tui.showDebug) {
+      this.tui.showDebug(message);
+    } else {
+      process.stdout.write(message + "\n");
+    }
+  },
+  error(message) {
+    if (this.tui && this.tui.showDebug) {
+      this.tui.showDebug(`ERROR: ${message}`);
+    } else {
+      process.stderr.write(message + "\n");
+    }
+  }
+};
 
 // Try to load config, with fallback
 let config;
 try {
   config = require("../config.json");
 } catch (error) {
-  console.error("Warning: config.json not found, using config.example.json");
+  logger.error("Warning: config.json not found, using config.example.json");
   try {
     config = require("../config.example.json");
   } catch (error2) {
-    console.error("Error: Neither config.json nor config.example.json found");
+    logger.error("Error: Neither config.json nor config.example.json found");
     process.exit(1);
   }
 }
@@ -36,11 +59,14 @@ program
 
 async function main() {
   const options = program.opts();
-  
+
   try {
     // Only show startup info in dry run mode to avoid interfering with TUI
     if (options.dryRun) {
-      console.log("Starting Diku MUD AI Player v0.2.0 (Simplified)");
+      // Create TUI for dry-run mode to handle debug output
+      const tui = new TUI(config.behavior);
+      
+      tui.showDebug("Starting Diku MUD AI Player v0.2.0 (Simplified)");
       // Determine config format for display
       let llmInfo;
       if (config.ollama && !config.llm) {
@@ -61,28 +87,28 @@ async function main() {
         };
       }
 
-      console.log("Configuration:", {
-        mudHost: config.mud.host,
-        mudPort: config.mud.port,
-        llmProvider: llmInfo.provider,
-        llmUrl: llmInfo.baseUrl,
-        model: llmInfo.model
-      });
-      console.log("DRY RUN MODE: Will not connect to MUD");
+      tui.showDebug(`Configuration: MUD Host: ${config.mud.host}, MUD Port: ${config.mud.port}, LLM Provider: ${llmInfo.provider}, LLM URL: ${llmInfo.baseUrl}, Model: ${llmInfo.model}`);
+      tui.showDebug("DRY RUN MODE: Will not connect to MUD");
+      
+      // Keep TUI open for a moment to show the debug info
+      setTimeout(() => {
+        tui.destroy();
+        process.exit(0);
+      }, 3000);
       return;
     }
 
     // Character selection flow
     const characterManager = new CharacterManager(config);
-    const characterSelector = new CharacterSelector(characterManager);
+    const characterSelector = new CharacterSelector(characterManager, logger);
     const selection = await characterSelector.selectCharacter();
     
     let selectedCharacterId = null;
     if (selection.action === "use_existing") {
       selectedCharacterId = selection.characterId;
-      console.log("Selected existing character for play.");
+      // Note: Character selection status will be logged to TUI debug panel once client starts
     } else {
-      console.log("Will create new character during gameplay.");
+      // Note: New character creation status will be logged to TUI debug panel once client starts
     }
 
     // Create and start the simple MUD client
@@ -91,22 +117,30 @@ async function main() {
       characterId: selectedCharacterId 
     });
     
+    // Log character selection status to TUI now that it's available
+    logger.setTUI(mudClient.tui);
+    if (selection.action === "use_existing") {
+      logger.log("Selected existing character for play.");
+    } else {
+      logger.log("Will create new character during gameplay.");
+    }
+    
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
-      console.log("\nReceived SIGINT, shutting down gracefully...");
+      logger.log("\nReceived SIGINT, shutting down gracefully...");
       await mudClient.disconnect();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
-      console.log("\nReceived SIGTERM, shutting down gracefully...");
+      logger.log("\nReceived SIGTERM, shutting down gracefully...");
       await mudClient.disconnect();
       process.exit(0);
     });
 
     // Handle uncaught exceptions to clean up TUI
     process.on("uncaughtException", async (error) => {
-      console.error("Uncaught exception:", error);
+      logger.error("Uncaught exception:", error);
       await mudClient.disconnect();
       process.exit(1);
     });
@@ -115,9 +149,9 @@ async function main() {
     await mudClient.start();
     
   } catch (error) {
-    console.error("Failed to start Diku MUD AI Player:", error.message);
+    logger.error("Failed to start Diku MUD AI Player:", error.message);
     if (options.debug) {
-      console.error("Stack trace:", error.stack);
+      logger.error("Stack trace:", error.stack);
     }
     process.exit(1);
   }
@@ -125,7 +159,11 @@ async function main() {
 
 // Only run if this file is executed directly
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch((error) => {
+    // Final error handler - must use direct write as TUI may not be available
+    process.stderr.write("Fatal error: " + error + "\n");
+    process.exit(1);
+  });
 }
 
 module.exports = { main };

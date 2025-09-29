@@ -135,9 +135,9 @@ class MudClient {
     });
 
     if (this.debug) {
-      console.log(`LLM Provider: ${this.llmProvider}`);
-      console.log(`LLM Model: ${this.llmConfig.model}`);
-      console.log(`LLM Base URL: ${this.llmConfig.baseUrl}`);
+      this.tui.showDebug(`LLM Provider: ${this.llmProvider}`);
+      this.tui.showDebug(`LLM Model: ${this.llmConfig.model}`);
+      this.tui.showDebug(`LLM Base URL: ${this.llmConfig.baseUrl}`);
     }
   }
 
