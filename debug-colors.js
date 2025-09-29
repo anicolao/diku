@@ -121,4 +121,4 @@ screen.key(['escape', 'q', 'C-c'], () => {
 
 screen.render();
 
-console.log('Debug test running. Check which panels show correct colors.');
+process.stderr.write('Debug test running. Check which panels show correct colors.' + "\n");

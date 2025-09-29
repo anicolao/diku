@@ -7,14 +7,15 @@
 const TUI = require('./src/tui');
 
 async function completeCoverageTest() {
-  console.log('Testing TUI with white titles and complete screen coverage...');
-  console.log('Checking for:');
-  console.log('1. Titles/labels should be bright-white on blue background');
-  console.log('2. ALL screen real estate should have blue background');
-  console.log('3. No empty/uncovered terminal space visible');
-  console.log('Press Ctrl+C to exit\n');
   
   const tui = new TUI();
+
+    tui.showDebug('Testing TUI with white titles and complete screen coverage...');
+    tui.showDebug('Checking for:');
+    tui.showDebug('1. Titles/labels should be bright-white on blue background');
+    tui.showDebug('2. ALL screen real estate should have blue background');
+    tui.showDebug('3. No empty/uncovered terminal space visible');
+    tui.showDebug('Press Ctrl+C to exit\n');
   
   // Test title visibility and complete coverage
   tui.showMudOutput('=== WHITE TITLES & COMPLETE COVERAGE TEST ===');
@@ -48,8 +49,8 @@ async function completeCoverageTest() {
 
 // Handle cleanup
 process.on('SIGINT', () => {
-  console.log('\nComplete coverage test completed.');
+  process.stderr.write('\nComplete coverage test completed.' + "\n");
   process.exit(0);
 });
 
-completeCoverageTest().catch(console.error);
+completeCoverageTest().catch(process.stderr.write);

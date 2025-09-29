@@ -64,4 +64,4 @@ screen.key(['escape', 'q', 'C-c'], () => {
 
 screen.render();
 
-console.log('Color test running. Check which black background works best.');
+process.stdout.write('Color test running. Check which black background works best.\n');

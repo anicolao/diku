@@ -8,10 +8,10 @@
 const TUI = require('./src/tui');
 
 async function runDemo() {
-  console.log('Starting TUI Demo...');
-  console.log('Press Ctrl+C to exit');
-  
   const tui = new TUI();
+  
+  tui.showDebug('Starting TUI Demo...');
+  tui.showDebug('Press Ctrl+C to exit');
   
   // Simulate MUD connection
   tui.updateInputStatus('Demo mode: Showcasing TUI layout');
@@ -69,13 +69,16 @@ async function runDemo() {
 
 // Handle cleanup
 process.on('SIGINT', () => {
-  console.log('\nExiting demo...');
+  process.stderr.write('\nExiting demo...\n');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('\nExiting demo...');
+  process.stderr.write('\nExiting demo...\n');
   process.exit(0);
 });
 
-runDemo().catch(console.error);
+runDemo().catch((error) => {
+  process.stderr.write('Demo error: ' + error + '\n');
+  process.exit(1);
+});

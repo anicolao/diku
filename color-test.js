@@ -8,11 +8,12 @@
 const TUI = require('./src/tui');
 
 async function colorTest() {
-  console.log('Testing TUI with dark backgrounds...');
-  console.log('This will demonstrate the panels with black backgrounds as requested.');
-  console.log('Press Ctrl+C to exit\n');
   
   const tui = new TUI();
+
+    tui.showDebug('Testing TUI with dark backgrounds...');
+    tui.showDebug('This will demonstrate the panels with black backgrounds as requested.');
+    tui.showDebug('Press Ctrl+C to exit\n');
   
   // Add content to demonstrate the backgrounds
   tui.showMudOutput('=== MAIN MUD PANEL (BLACK BACKGROUND) ===');
@@ -39,8 +40,8 @@ async function colorTest() {
 
 // Handle cleanup
 process.on('SIGINT', () => {
-  console.log('\nColor test completed.');
+  process.stderr.write('\nColor test completed.' + "\n");
   process.exit(0);
 });
 
-colorTest().catch(console.error);
+colorTest().catch(process.stderr.write);

@@ -7,12 +7,12 @@
 const TUI = require('./src/tui');
 
 async function allBlueThemeTest() {
-  console.log('Testing TUI with all-blue theme (blue backgrounds AND blue borders)...');
-  console.log('All panels should now have blue backgrounds with blue borders.');
-  console.log('Debug panel should use bright-white text.');
-  console.log('Press Ctrl+C to exit\n');
-  
   const tui = new TUI();
+  
+  tui.showDebug('Testing TUI with all-blue theme (blue backgrounds AND blue borders)...');
+  tui.showDebug('All panels should now have blue backgrounds with blue borders.');
+  tui.showDebug('Debug panel should use bright-white text.');
+  tui.showDebug('Press Ctrl+C to exit\n');
   
   // Test all panels with blue backgrounds and blue borders
   tui.showMudOutput('=== MUD PANEL (BLUE BACKGROUND + BLUE BORDER) ===');
@@ -42,8 +42,8 @@ async function allBlueThemeTest() {
 
 // Handle cleanup
 process.on('SIGINT', () => {
-  console.log('\nAll-blue theme test completed.');
+  process.stderr.write('\nAll-blue theme test completed.' + "\n");
   process.exit(0);
 });
 
-allBlueThemeTest().catch(console.error);
+allBlueThemeTest().catch(process.stderr.write);
