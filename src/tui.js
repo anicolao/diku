@@ -318,40 +318,50 @@ class TUI {
     let logContent = "";
 
     if (data.contextInfo) {
-      content += `{cyan-fg}💭 ${data.contextInfo}{/cyan-fg}\n`;
+      // Use simpler formatting to avoid emoji/unicode rendering issues
+      content += `{cyan-fg}Context: ${data.contextInfo}{/cyan-fg}\n`;
       logContent += `💭 ${data.contextInfo}\n`;
     }
 
     if (data.plan) {
-      content += `{yellow-fg}📋 Plan:{/yellow-fg} ${data.plan}\n`;
+      content += `{yellow-fg}Plan: ${data.plan}{/yellow-fg}\n`;
       logContent += `📋 Plan: ${data.plan}\n`;
     }
 
     if (data.nextStep) {
-      content += `{green-fg}➡️  Next Step:{/green-fg} ${data.nextStep}\n`;
+      content += `{green-fg}Next Step: ${data.nextStep}{/green-fg}\n`;
       logContent += `➡️  Next Step: ${data.nextStep}\n`;
     }
 
     if (data.command) {
-      content += `{white-fg}🎮 Command:{/white-fg} ${data.command}\n`;
+      content += `{white-fg}Command: ${data.command}{/white-fg}\n`;
       logContent += `🎮 Command: ${data.command}\n`;
     }
 
     if (data.error) {
-      content += `{red-fg}❌ Error:{/red-fg} ${data.error}\n`;
+      content += `{red-fg}Error: ${data.error}{/red-fg}\n`;
       logContent += `❌ Error: ${data.error}\n`;
     }
 
     content += "\n";
 
-    // Log to file
+    // Log to file (with emoji for log readability)
     if (logContent) {
       this.writeToLog("status", logContent.trim());
     }
 
-    // Append to existing content
+    // Use a more robust content update approach
+    // Clear and set content instead of appending to prevent corruption
     const currentContent = this.statusPanel.getContent();
-    this.statusPanel.setContent(currentContent + content);
+    const lines = currentContent.split("\n");
+    
+    // Keep only the last 50 lines to prevent memory/rendering issues
+    if (lines.length > 50) {
+      lines.splice(0, lines.length - 50);
+    }
+    
+    const cleanedContent = lines.join("\n");
+    this.statusPanel.setContent(cleanedContent + content);
     this.statusPanel.scrollTo(this.statusPanel.getScrollHeight());
     this.screen.render();
   }
@@ -368,9 +378,17 @@ class TUI {
     // Log to file
     this.writeToLog("debug", message);
 
-    // Append to existing content
+    // Use a more robust content update approach
     const currentContent = this.debugPanel.getContent();
-    this.debugPanel.setContent(currentContent + content);
+    const lines = currentContent.split("\n");
+    
+    // Keep only the last 40 lines to prevent memory/rendering issues
+    if (lines.length > 40) {
+      lines.splice(0, lines.length - 40);
+    }
+    
+    const cleanedContent = lines.join("\n");
+    this.debugPanel.setContent(cleanedContent + content);
     this.debugPanel.scrollTo(this.debugPanel.getScrollHeight());
     this.screen.render();
   }
@@ -437,8 +455,18 @@ class TUI {
     // Append to existing content with timestamp and separator for better readability
     const timestamp = new Date().toLocaleTimeString();
     const newContent = `{bold}[${timestamp}]{/bold} ${message}\n`;
+    
+    // Use a more robust content update approach
     const currentContent = this.inputBox.getContent();
-    this.inputBox.setContent(currentContent + newContent);
+    const lines = currentContent.split("\n");
+    
+    // Keep only the last 30 lines to prevent memory/rendering issues in input panel
+    if (lines.length > 30) {
+      lines.splice(0, lines.length - 30);
+    }
+    
+    const cleanedContent = lines.join("\n");
+    this.inputBox.setContent(cleanedContent + newContent);
     this.inputBox.scrollTo(this.inputBox.getScrollHeight());
     this.screen.render();
   }
