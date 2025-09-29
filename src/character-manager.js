@@ -37,19 +37,7 @@ class CharacterManager {
       if (fs.existsSync(this.dataFile)) {
         const data = fs.readFileSync(this.dataFile, "utf8");
         const parsed = JSON.parse(data);
-
-        // Handle both array and object formats for backwards compatibility
-        if (Array.isArray(parsed)) {
-          // Convert array to object keyed by characterId
-          this.characters = {};
-          parsed.forEach((char) => {
-            if (char.characterId) {
-              this.characters[char.characterId] = char;
-            }
-          });
-        } else {
-          this.characters = parsed;
-        }
+        this.characters = parsed;
       }
     } catch (error) {
       this.debug(
@@ -636,24 +624,6 @@ class CharacterManager {
             character.roomMap[connectionInfo.roomId].connections[oppositeDir] = roomId;
           }
         }
-      } else {
-        // Fallback: Create basic connections based on successful movement (deprecated, but for backward compatibility)
-        if (character.currentRoomId && character.currentRoomId !== roomId && character.movementHistory.length > 0) {
-          const lastMove = character.movementHistory[character.movementHistory.length - 1];
-          if (lastMove.result === "success") {
-            const prevRoom = character.roomMap[character.currentRoomId];
-            if (prevRoom) {
-              if (!prevRoom.connections) prevRoom.connections = {};
-              if (!character.roomMap[roomId].connections) character.roomMap[roomId].connections = {};
-              
-              prevRoom.connections[lastMove.direction] = roomId;
-              const oppositeDir = this.getOppositeDirection(lastMove.direction);
-              if (oppositeDir) {
-                character.roomMap[roomId].connections[oppositeDir] = character.currentRoomId;
-              }
-            }
-          }
-        }
       }
 
       // Check if we need to correct a previous room's name based on where we came from
@@ -708,7 +678,6 @@ class CharacterManager {
       }
 
       character.currentRoomId = roomId;
-      character.location = roomName; // Update location for backward compatibility
     }
   }
 

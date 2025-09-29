@@ -69,15 +69,7 @@ async function main() {
       tui.showDebug("Starting Diku MUD AI Player v0.2.0 (Simplified)");
       // Determine config format for display
       let llmInfo;
-      if (config.ollama && !config.llm) {
-        // Legacy config format
-        llmInfo = {
-          provider: "ollama (legacy config)",
-          baseUrl: config.ollama.baseUrl,
-          model: config.ollama.model
-        };
-      } else if (config.llm) {
-        // New config format
+      if (config.llm) {
         const provider = config.llm.provider || "ollama";
         const providerConfig = config.llm[provider];
         llmInfo = {

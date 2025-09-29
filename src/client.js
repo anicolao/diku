@@ -94,21 +94,15 @@ class MudClient {
   }
 
   /**
-   * Setup LLM provider (Ollama or OpenAI) with backward compatibility
+   * Setup LLM provider (Ollama or OpenAI)
    */
   setupLLMProvider(config) {
-    // Support backward compatibility with old config format
-    if (config.ollama && !config.llm) {
-      // Legacy config format - use Ollama
-      this.llmProvider = "ollama";
-      this.llmConfig = config.ollama;
-    } else if (config.llm) {
-      // New config format
+    if (config.llm) {
       this.llmProvider = config.llm.provider || "ollama";
       this.llmConfig = config.llm[this.llmProvider];
     } else {
       throw new Error(
-        "No LLM configuration found. Please configure either ollama or llm section in config.",
+        "No LLM configuration found. Please configure llm section in config.",
       );
     }
 
@@ -951,15 +945,7 @@ System responds with "OK" or "ERROR - message". Use these tools when appropriate
     const planMatch = llmResponse.match(/<plan>\s*(.*?)\s*<\/plan>/is);
     let plan = planMatch ? planMatch[1].trim() : null;
 
-    // Fallback: Extract plan from **Plan**: headers (markdown-style)
-    if (!plan) {
-      const planMarkdownMatch = llmResponse.match(
-        /\*\*Plan\*\*:?\s*(.*?)(?=\n|$)/i,
-      );
-      plan = planMarkdownMatch ? planMarkdownMatch[1].trim() : null;
-    }
-
-    // Extract next step/reasoning (keeping existing logic for compatibility)
+    // Extract next step/reasoning
     const stepMatch = llmResponse.match(
       /\*\*(?:Next Step|Command|Action)\*\*:?\s*(.*?)(?=\n\*\*|<|$)/is,
     );

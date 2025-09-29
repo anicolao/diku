@@ -20,9 +20,12 @@ describe("Navigation Helper Commands", () => {
       host: "test.host",
       port: 2700
     },
-    ollama: {
-      baseUrl: "http://localhost:11434",
-      model: "test-model"
+    llm: {
+      provider: 'ollama',
+      ollama: {
+        baseUrl: "http://localhost:11434",
+        model: "test-model"
+      }
     }
   };
 

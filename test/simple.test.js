@@ -22,10 +22,13 @@ describe('Simplified Diku MUD AI Player', () => {
 
   beforeEach(() => {
     mockConfig = {
-      ollama: {
-        baseUrl: 'http://localhost:11434',
-        model: 'llama2',
-        temperature: 0.7
+      llm: {
+        provider: 'ollama',
+        ollama: {
+          baseUrl: 'http://localhost:11434',
+          model: 'llama2',
+          temperature: 0.7
+        }
       },
       mud: {
         host: 'arctic.org',
@@ -214,19 +217,6 @@ look
       expect(result.command).toBe('look');
     });
 
-    test('should support backward compatibility with markdown-style Plan headers', () => {
-      client = new MudClient(mockConfig);
-      
-      const legacyResponse = `**Plan**: Legacy plan format test
-      
-<command>
-look
-</command>`;
-      
-      const result = client.parseLLMResponse(legacyResponse);
-      expect(result.plan).toBe('Legacy plan format test');
-      expect(result.command).toBe('look');
-    });
 
     test('should have correct system prompt', () => {
       client = new MudClient(mockConfig);
@@ -354,27 +344,7 @@ look
       expect(config.mud.port).toBe(2700);
     });
 
-    test('should support backward compatibility with old config format', () => {
-      const legacyConfig = {
-        ollama: {
-          baseUrl: 'http://localhost:11434',
-          model: 'llama2',
-          temperature: 0.7
-        },
-        mud: {
-          host: 'arctic.org',
-          port: 2700
-        },
-        behavior: {
-          commandDelayMs: 1000
-        }
-      };
 
-      client = new MudClient(legacyConfig);
-      expect(client.llmProvider).toBe('ollama');
-      expect(client.llmConfig.baseUrl).toBe('http://localhost:11434');
-      expect(client.llmConfig.model).toBe('llama2');
-    });
 
     test('should configure OpenAI provider', () => {
       const openaiConfig = {
