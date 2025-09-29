@@ -54,9 +54,6 @@ cp config.example.json config.json
 
 # Start the AI player
 npm start
-
-# Run demo to see the TUI interface without connecting
-node demo.js
 ```
 
 ## Requirements
@@ -102,27 +99,6 @@ The client supports two LLM providers and can be configured through `config.json
 
 - **Ollama** (default): Set `"provider": "ollama"` to use local Ollama server
 - **OpenAI**: Set `"provider": "openai"` to use OpenAI API (requires valid API key)
-
-### Legacy Configuration (Backward Compatible)
-
-The old configuration format is still supported:
-
-```json
-{
-  "ollama": {
-    "baseUrl": "http://localhost:11434",
-    "model": "llama2",
-    "temperature": 0.7
-  },
-  "mud": {
-    "host": "arctic.org",
-    "port": 2700
-  },
-  "behavior": {
-    "commandDelayMs": 2000
-  }
-}
-```
 
 ## How It Works
 

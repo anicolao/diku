@@ -28,6 +28,7 @@ describe('LLM Request Queuing', () => {
         port: 1234,
       },
       llm: {
+        provider: 'ollama',
         ollama: {
           baseUrl: 'http://localhost:11434',
           model: 'test-model',
