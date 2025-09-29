@@ -17,13 +17,14 @@ function generateUUID() {
 }
 
 class CharacterManager {
-  constructor(config) {
+  constructor(config, debugCallback = null) {
     this.config = config;
     this.dataFile = path.resolve(
       config.characters?.dataFile || "characters.json",
     );
     this.backupOnSave = config.characters?.backupOnSave ?? true;
     this.characters = {};
+    this.debug = debugCallback || (() => {}); // Default to no-op if no callback provided
 
     this.loadCharacters();
   }
@@ -593,7 +594,7 @@ class CharacterManager {
       const isNewRoom = !character.roomMap[roomId];
 
       if (isNewRoom) {
-        console.log(`🗺️  DEBUG: New room encountered: "${roomName}" (ID: ${roomId})`);
+        this.debug(`🗺️  DEBUG: New room encountered: "${roomName}" (ID: ${roomId})`);
         character.roomMap[roomId] = {
           name: roomName,
           exits: exits,
@@ -686,7 +687,7 @@ class CharacterManager {
               );
               
               if (hasMatch) {
-                console.log(`🔧 DEBUG: Room ID corrected from "${expectedDestination}" to "${roomId}" (name match: "${expectedRoom.name}" -> "${roomName}")`);
+                this.debug(`🔧 DEBUG: Room ID corrected from "${expectedDestination}" to "${roomId}" (name match: "${expectedRoom.name}" -> "${roomName}")`);
                 
                 // Update all connections pointing to the old room ID
                 for (const [, otherRoom] of Object.entries(character.roomMap)) {

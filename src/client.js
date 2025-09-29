@@ -64,7 +64,7 @@ class MudClient {
     this.tui = new TUI(this.config.behavior);
 
     // Initialize character management
-    this.characterManager = new CharacterManager(config);
+    this.characterManager = new CharacterManager(config, (message) => this.tui.showDebug(message));
     this.currentCharacterId = options.characterId || null;
 
     // Conversation history for LLM context
