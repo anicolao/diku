@@ -26,6 +26,35 @@ Each entry follows this format:
 
 ## Development History
 
+### Commit: [CURRENT] - Reorganize system prompt for better LLM comprehension and smaller models
+**Issue**: System prompt review (Issue title: "Review and reorganize system prompt")
+**Date**: 2025-01-15T19:48:00Z  
+**Prompt**:
+```
+I suspect the system prompt has gotten way too long and complicated. Review all of its content and reorganize it into a more coherent prompt. Consider whether we can give the LLM more instructions about planning so that smaller LLMs can do a better job of navigating the game world. The goal is to make it possible for a smaller model to successfully play the game—as it stands, only big foundation models are successful in the game.
+
+**Implementation completed**:
+1. **Restructured with clear hierarchy**: Used markdown headers (##) to organize content into logical sections
+2. **Added Strategic Planning Framework**: 4-step decision sequence to guide smaller LLMs through systematic thinking
+3. **Consolidated redundant information**: Removed repetitive rules and examples scattered throughout the old prompt
+4. **Prioritized critical information**: Safety, combat, and navigation guidance placed prominently
+5. **Created quick reference sections**: Essential commands grouped by function for easy scanning
+6. **Simplified language**: Removed verbose explanations, used bullet points and clear formatting
+7. **Added progression guidance**: Specific level-based strategies to help LLMs adapt approach as character grows
+8. **Streamlined response format**: Clear expectations for <plan> and <command> blocks
+9. **Enhanced error handling**: Consolidated all error scenarios with immediate action steps
+10. **Updated tests**: Modified test expectations to match new prompt structure
+
+**Key improvements for smaller LLMs**:
+- **Decision Framework**: Step-by-step assessment process before each action
+- **Clear Priorities**: Survival > Progress > Efficiency > Exploration hierarchy  
+- **Structured Sections**: Easy navigation to relevant information
+- **Actionable Guidelines**: Specific commands and strategies rather than general advice
+- **Reduced cognitive load**: Eliminated redundancy and verbose explanations
+
+The new prompt maintains all essential functionality while being more accessible to smaller language models through better organization and explicit planning guidance.
+```
+
 ### Commit: [PENDING] - Simplify CHARACTERS.md and use XML-style delimiters for easier parsing
 **Issue**: #9 (comment feedback)
 **Date**: 2024-09-24T13:30:00Z
