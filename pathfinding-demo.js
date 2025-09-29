@@ -16,12 +16,12 @@ const demoConfig = {
 };
 
 function demonstratePathfinding() {
-  console.log("=== Diku MUD AI Player - Pathfinding Enhancement Demo ===\n");
+  process.stdout.write("=== Diku MUD AI Player - Pathfinding Enhancement Demo ===\n\n");
 
   const charManager = new CharacterManager(demoConfig);
 
   // 1. Create a demo character with pathfinding features
-  console.log("1. Creating a character with enhanced pathfinding data...");
+  process.stdout.write("1. Creating a character with enhanced pathfinding data...\n");
   const newCharResponse = `
 <new-character>
 {
@@ -37,18 +37,18 @@ function demonstratePathfinding() {
 
   const charResult = charManager.parseNewCharacter(newCharResponse);
   if (charResult.success) {
-    console.log("✓ Character created:", charResult.character.name);
-    console.log("✓ Pathfinding structures initialized:");
-    console.log("  - Room Map:", Object.keys(charResult.character.roomMap).length, "rooms");
-    console.log("  - Movement History:", charResult.character.movementHistory.length, "movements");
-    console.log("  - Path Memory:", charResult.character.pathMemory.length, "paths");
-    console.log("");
+    process.stderr.write("✓ Character created:", charResult.character.name + "\n");
+    process.stdout.write("✓ Pathfinding structures initialized:\n");
+    process.stdout.write("  - Room Map: " + Object.keys(charResult.character.roomMap).length + " rooms\n");
+    process.stdout.write("  - Movement History:", charResult.character.movementHistory.length, "movements\n");
+    process.stdout.write("  - Path Memory:", charResult.character.pathMemory.length, "paths\n");
+    process.stderr.write("" + "\n");
   }
 
   const characterId = charResult.character.characterId;
 
   // 2. Simulate movement tracking
-  console.log("2. Simulating movement tracking...");
+  process.stdout.write("2. Simulating movement tracking...\n");
   
   // Successful movement north
   const mudOutput1 = `
@@ -62,12 +62,12 @@ the vaulted ceiling, and soft light emanates from mystical crystals.
   `;
 
   charManager.recordMovement(characterId, "N", mudOutput1, true);
-  console.log("✓ Recorded successful movement North");
+  process.stdout.write("✓ Recorded successful movement North\n");
 
   // Failed movement attempt
   const mudOutput2 = "You can't go that way!";
   charManager.recordMovement(characterId, "U", mudOutput2, false);
-  console.log("✓ Recorded failed movement Up");
+  process.stdout.write("✓ Recorded failed movement Up\n");
 
   // Another successful movement
   const mudOutput3 = `
@@ -81,29 +81,29 @@ Colorful banners flutter in the breeze above merchant stalls.
   `;
 
   charManager.recordMovement(characterId, "E", mudOutput3, true);
-  console.log("✓ Recorded successful movement East");
-  console.log("");
+  process.stdout.write("✓ Recorded successful movement East\n");
+  process.stderr.write("" + "\n");
 
   // 3. Show room mapping results
-  console.log("3. Room mapping results:");
+  process.stdout.write("3. Room mapping results:\n");
   const character = charManager.getCharacter(characterId);
-  console.log("Rooms discovered:", Object.keys(character.roomMap).length);
+  process.stdout.write("Rooms discovered: " + Object.keys(character.roomMap).length + "\n");
   
   Object.values(character.roomMap).forEach((room, index) => {
-    console.log(`  ${index + 1}. ${room.name}`);
-    console.log(`     Exits: ${room.exits.join(", ")}`);
-    console.log(`     Visited: ${room.visited_count} times`);
+    process.stderr.write(`  ${index + 1}. ${room.name}` + "\n");
+    process.stdout.write(`     Exits: ${room.exits.join(", ")}\n`);
+    process.stderr.write(`     Visited: ${room.visited_count} times` + "\n");
   });
-  console.log("");
+  process.stderr.write("" + "\n");
 
   // 4. Record a memorable path
-  console.log("4. Recording a memorable path...");
+  process.stdout.write("4. Recording a memorable path...\n");
   charManager.recordPath(characterId, "Starting Village", "Market Square", ["N", "E"]);
-  console.log("✓ Recorded path: Starting Village → Market Square via N, E");
-  console.log("");
+  process.stdout.write("✓ Recorded path: Starting Village → Market Square via N, E\n");
+  process.stderr.write("" + "\n");
 
   // 5. Record pathfinding memory
-  console.log("5. Recording pathfinding memory...");
+  process.stdout.write("5. Recording pathfinding memory...\n");
   const pathMemoryResponse = `
 <record-memory>
 {
@@ -120,35 +120,35 @@ Colorful banners flutter in the breeze above merchant stalls.
 
   const memoryResult = charManager.parseRecordMemory(pathMemoryResponse, characterId);
   if (memoryResult.success) {
-    console.log("✓ Recorded pathfinding memory about secret passage");
+    process.stdout.write("✓ Recorded pathfinding memory about secret passage\n");
   }
-  console.log("");
+  process.stderr.write("" + "\n");
 
   // 6. Generate navigation context
-  console.log("6. Navigation context for LLM:");
+  process.stdout.write("6. Navigation context for LLM:\n");
   const navContext = charManager.generateNavigationContext(character);
-  console.log(navContext);
-  console.log("");
+  process.stderr.write(navContext + "\n");
+  process.stderr.write("" + "\n");
 
   // 7. Show complete character context
-  console.log("7. Complete character context for system prompt:");
+  process.stdout.write("7. Complete character context for system prompt:\n");
   const fullContext = charManager.generateCharacterContext(characterId);
-  console.log("Character:", fullContext.name);
-  console.log("Location:", fullContext.location);
-  console.log("Navigation Info:");
-  console.log(fullContext.navigation);
-  console.log("\nRecent Memories:");
-  console.log(fullContext.memories);
-  console.log("");
+  process.stderr.write("Character:", fullContext.name + "\n");
+  process.stderr.write("Location:", fullContext.location + "\n");
+  process.stdout.write("Navigation Info:\n");
+  process.stderr.write(fullContext.navigation + "\n");
+  process.stdout.write("\nRecent Memories:\n");
+  process.stderr.write(fullContext.memories + "\n");
+  process.stderr.write("" + "\n");
 
-  console.log("=== Demo Complete ===");
-  console.log("\nKey Benefits:");
-  console.log("• LLMs now receive detailed room and exit information");
-  console.log("• Movement success/failure is tracked to avoid repeated mistakes");
-  console.log("• Important paths can be remembered for efficient navigation");
-  console.log("• Room visit counts help prioritize unexplored areas");
-  console.log("• Enhanced system prompts provide clear pathfinding guidance");
-  console.log("\nThis significantly improves the LLM's spatial awareness and navigation capabilities!");
+  process.stdout.write("=== Demo Complete ===\n");
+  process.stdout.write("\nKey Benefits:\n");
+  process.stdout.write("• LLMs now receive detailed room and exit information\n");
+  process.stdout.write("• Movement success/failure is tracked to avoid repeated mistakes\n");
+  process.stdout.write("• Important paths can be remembered for efficient navigation\n");
+  process.stdout.write("• Room visit counts help prioritize unexplored areas\n");
+  process.stdout.write("• Enhanced system prompts provide clear pathfinding guidance\n");
+  process.stdout.write("\nThis significantly improves the LLM's spatial awareness and navigation capabilities!\n");
 
   // Cleanup demo file
   const fs = require("fs");

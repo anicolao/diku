@@ -277,7 +277,7 @@ class TUI {
       fs.appendFileSync(this.logFiles[logType], logEntry);
     } catch (error) {
       // Silently ignore logging errors to avoid disrupting UI
-      console.error(`Failed to write to ${logType} log:`, error.message);
+      // Note: Cannot use showDebug here as it might cause recursion
     }
   }
 

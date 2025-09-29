@@ -6,8 +6,12 @@
 const readline = require("readline");
 
 class CharacterSelector {
-  constructor(characterManager) {
+  constructor(characterManager, logger = null) {
     this.characterManager = characterManager;
+    this.logger = logger || {
+      log: (msg) => process.stdout.write(msg + "\n"),
+      error: (msg) => process.stderr.write(msg + "\n")
+    };
   }
 
   /**
@@ -16,14 +20,14 @@ class CharacterSelector {
   async selectCharacter() {
     const characters = this.characterManager.getCharactersList();
     
-    console.log("\n=== Diku MUD AI Player ===");
-    console.log("Available characters:");
+    this.logger.log("\n=== Diku MUD AI Player ===");
+    this.logger.log("Available characters:");
     
     characters.forEach((char, index) => {
-      console.log(`${index + 1}. ${char.name} (Level ${char.level} ${char.class}, ${char.race})`);
+      this.logger.log(`${index + 1}. ${char.name} (Level ${char.level} ${char.class}, ${char.race})`);
     });
     
-    console.log(`${characters.length + 1}. Create new character`);
+    this.logger.log(`${characters.length + 1}. Create new character`);
     
     const rl = readline.createInterface({
       input: process.stdin,
@@ -48,7 +52,7 @@ class CharacterSelector {
         return { action: "use_existing", characterId: selectedChar.id };
       } else {
         rl.close();
-        console.log("Invalid choice. Exiting.");
+        this.logger.error("Invalid choice. Exiting.");
         process.exit(1);
       }
     } catch (error) {

@@ -7,15 +7,16 @@
 const TUI = require('./src/tui');
 
 async function solidBlueBackgroundTest() {
-  console.log('Testing TUI with solid blue background everywhere...');
-  console.log('The entire screen should have a solid blue background:');
-  console.log('- Screen background: blue');
-  console.log('- Panel backgrounds: blue');
-  console.log('- Border backgrounds: blue');
-  console.log('- Empty space: blue');
-  console.log('Press Ctrl+C to exit\n');
   
   const tui = new TUI();
+
+    tui.showDebug('Testing TUI with solid blue background everywhere...');
+    tui.showDebug('The entire screen should have a solid blue background:');
+    tui.showDebug('- Screen background: blue');
+    tui.showDebug('- Panel backgrounds: blue');
+    tui.showDebug('- Border backgrounds: blue');
+    tui.showDebug('- Empty space: blue');
+    tui.showDebug('Press Ctrl+C to exit\n');
   
   // Test all panels with solid blue backgrounds everywhere
   tui.showMudOutput('=== SOLID BLUE BACKGROUND TEST ===');
@@ -46,8 +47,8 @@ async function solidBlueBackgroundTest() {
 
 // Handle cleanup
 process.on('SIGINT', () => {
-  console.log('\nSolid blue background test completed.');
+  process.stderr.write('\nSolid blue background test completed.' + "\n");
   process.exit(0);
 });
 
-solidBlueBackgroundTest().catch(console.error);
+solidBlueBackgroundTest().catch(process.stderr.write);
