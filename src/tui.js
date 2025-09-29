@@ -58,13 +58,17 @@ class TUI {
    * Initialize the blessed screen and create UI layout
    */
   initializeScreen() {
-    // Force color support and create main screen with blue background everywhere
+    // Create main screen with improved configuration to reduce corruption
     this.screen = blessed.screen({
       smartCSR: true,
       title: "Diku MUD AI Player",
       fullUnicode: true,
       dockBorders: true,
       warnings: false,
+      autoPadding: true,
+      fastCSR: true,
+      sendFocus: false,
+      useBCE: true,
       style: {
         bg: "blue",
         fg: "white",
@@ -72,7 +76,7 @@ class TUI {
     });
 
     // Force color mode if terminal doesn't detect it properly
-    if (this.screen.tput.colors < 256) {
+    if (this.screen.tput && this.screen.tput.colors < 256) {
       this.screen.tput.colors = 256;
     }
 
