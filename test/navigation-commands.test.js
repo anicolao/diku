@@ -260,10 +260,10 @@ The bustling market square is filled with merchants and travelers.
     test("should include navigation commands in system prompt", () => {
       const systemPrompt = client.generateSystemPrompt();
       
-      expect(systemPrompt).toContain("Navigation Helper Commands");
-      expect(systemPrompt).toContain("/point <destination>");
-      expect(systemPrompt).toContain("/wayfind <destination>");
-      expect(systemPrompt).toContain("partial room names");
+      expect(systemPrompt).toContain("Helper Commands");
+      expect(systemPrompt).toContain("/point destination");
+      expect(systemPrompt).toContain("/wayfind destination");
+      expect(systemPrompt).toContain("Navigation Commands");
     });
   });
 });

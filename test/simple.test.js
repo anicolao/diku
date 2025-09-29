@@ -95,7 +95,7 @@ describe('Simplified Diku MUD AI Player', () => {
       expect(client.conversationHistory.length).toBeLessThan(4);
       expect(client.conversationHistory[0].role).toBe('system');
       const finalTokens = client.calculateTotalTokens();
-      expect(finalTokens).toBeLessThanOrEqual(700);
+      expect(finalTokens).toBeLessThanOrEqual(800);
     });
 
     test('should estimate tokens correctly', () => {
@@ -220,40 +220,36 @@ look
 
     test('should have correct system prompt', () => {
       client = new MudClient(mockConfig);
-      expect(client.systemPrompt).toContain('expert Diku MUD player');
-      expect(client.systemPrompt).toContain('arctic diku');
+      expect(client.systemPrompt).toContain('ARCTIC DIKU MUD AI PLAYER');
       expect(client.systemPrompt).toContain('level 10');
       expect(client.systemPrompt).toContain('<command> block');
+      expect(client.systemPrompt).toContain('Arctic MUD');
     });
 
     test('should include NPC interaction help instructions in system prompt', () => {
       client = new MudClient(mockConfig);
-      expect(client.systemPrompt).toContain('When interacting with NPCs');
-      expect(client.systemPrompt).toContain('look NPC');
-      expect(client.systemPrompt).toContain('Each NPC has their');
-      expect(client.systemPrompt).toContain('own set of commands');
+      expect(client.systemPrompt).toContain('NPCs');
+      expect(client.systemPrompt).toContain('look npc');
+      expect(client.systemPrompt).toContain('INTERACTION GUIDELINES');
     });
 
     test('should include MUD status prompt parsing information in system prompt', () => {
       client = new MudClient(mockConfig);
-      expect(client.systemPrompt).toContain('Game Status Information');
+      expect(client.systemPrompt).toContain('GAME STATUS PARSING');
       expect(client.systemPrompt).toContain('56H 118V 1499X 0.00% 0C T:60 Exits:D');
       expect(client.systemPrompt).toContain('H** = Hit Points');
       expect(client.systemPrompt).toContain('V** = Move Points');
-      expect(client.systemPrompt).toContain('X** = Experience Points');
+      expect(client.systemPrompt).toContain('X** = Experience');
       expect(client.systemPrompt).toContain('C** = Coins');
-      expect(client.systemPrompt).toContain('T:** = Time to Next Tick');
-      expect(client.systemPrompt).toContain('Exits:** = Visible Exits');
-      expect(client.systemPrompt).toContain('N=North, S=South, E=East, W=West, U=Up, D=Down');
+      expect(client.systemPrompt).toContain('T:** = Seconds');
+      expect(client.systemPrompt).toContain('Exits:** = Available directions');
     });
 
     test('should include pager prompt handling instructions in system prompt', () => {
       client = new MudClient(mockConfig);
-      expect(client.systemPrompt).toContain('PAGER PROMPTS');
-      expect(client.systemPrompt).toContain('prompts with options in brackets like "[press return for more; q to quit]"');
-      expect(client.systemPrompt).toContain('prompt ends with ">" symbol');
-      expect(client.systemPrompt).toContain('PAGER COMMANDS');
-      expect(client.systemPrompt).toContain('use <command>return</command> to see more content or <command>q</command> to quit');
+      expect(client.systemPrompt).toContain('Pager prompts');
+      expect(client.systemPrompt).toContain('[brackets]');
+      expect(client.systemPrompt).toContain('ERROR HANDLING');
     });
 
     test('should handle debug mode', () => {

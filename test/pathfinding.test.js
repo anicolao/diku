@@ -588,7 +588,7 @@ West  - Western Hallway
       
       expect(systemPrompt).toContain("Navigation Context");
       expect(systemPrompt).toContain("Current room: Test Room");
-      expect(systemPrompt).toContain("Pathfinding Tips");
+      expect(systemPrompt).toContain("NAVIGATION & EXPLORATION");
     });
   });
 });
